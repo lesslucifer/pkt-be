@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { Card, Deck } from "./card";
 import { GamePlayer } from "./game";
+import { PokerHand } from "./poker-hand";
 
 export enum HandPlayerStatus {
     ACTIVE = 'ACTIVE',
@@ -106,10 +107,10 @@ export class GameHand {
             return
         }
 
-        this.dealNextHand()
+        this.dealNextRound()
     }
 
-    dealNextHand() {
+    dealNextRound() {
         if (this.round === HandRound.FLOP) {
             this.deck.deal() // burn
             this.communityCards.push(this.deck.deal())
@@ -123,9 +124,30 @@ export class GameHand {
     }
 
     completeHand() {
-        // calc result
-        // share pot
-        // showdown
+        const players = this.players.filter(p => p.status !== HandPlayerStatus.FOLDED)
+        const hands = players.map(p => ({
+            player: p,
+            hand: PokerHand.calcHand(p.cards, this.communityCards)
+        }))
+
+        let winners = [hands[0]]
+        for (let i = 1; i < hands.length; ++i) {
+            const cmp = PokerHand.compare(winners[0].hand, hands[i].hand)
+            if (cmp > 0) winners = [hands[i]]
+            else if (cmp == 0) winners.push(hands[i])
+        }
+
+        const winPot = this.pot / winners.length
+        const remain = winPot % winners.length
+
+        winners.forEach((w, i) => {
+            w.player.player.bank += winPot + (i < remain ? 1 : 0)
+        })
+        
+        this.status = GameHandStatus.SHOWING_DOWN
+        setTimeout(() => {
+            this.status = GameHandStatus.OVER
+        }, 5000)
     }
 
     static nextRound(round: HandRound) {
