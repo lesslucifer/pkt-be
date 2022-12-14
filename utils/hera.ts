@@ -314,6 +314,10 @@ export class Hera {
         if (val === '') return false;
         return true
     }
+
+    rotate<T>(arr: T[], r: number): T[] {
+        return _.range(arr.length).map(i => arr[(i + arr.length + r) % arr.length])
+    }
 }
 
 export const hera = new Hera();

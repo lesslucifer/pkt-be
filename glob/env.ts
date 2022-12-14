@@ -27,8 +27,6 @@ const envCustomParser = {
 }
 
 function loadConfig(): ENV_CONFIG {
-    console.debug('process.env')
-    console.debug(JSON.stringify(process.env, null, 2))
     const config: any = _.cloneDeep(ENV_DEFAULT);
     for (const key in process.env) {
         let val = process.env[key]
