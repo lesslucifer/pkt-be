@@ -35,7 +35,7 @@ export class PokerHand {
         const cards = [...holeCards, ...communityCards]
         const rankCheckers = [this.checkStraightFlush, this.checkFourOfAKind, this.checkFullHouse,
             this.checkFlush, this.checkStraight, this.checkThreeOfAKind, this.checkTwoPairs,
-            this.checkPairs, this.highCards]
+            this.checkOnePair, this.highCards]
 
         let rankResult: PokerHandRankResult
         for (const checker of rankCheckers) {
@@ -115,7 +115,7 @@ export class PokerHand {
     static checkFourOfAKind(cards: Card[]): PokerHandRankResult {
         const count = _.countBy(cards, c => c.rank)
         const quadRank = Number(_.keys(count).find(r => count[r] === 4))
-        if (!_.isNil(quadRank)) return {
+        if (!_.isNaN(quadRank)) return {
             rank: PokerHandRank.FOUR_OF_A_KIND,
             values: [quadRank, _.maxBy(cards, c => c.rank === quadRank ? 0 : c.rank).rank]
         }
@@ -143,7 +143,7 @@ export class PokerHand {
     static checkFlush(cards: Card[]): PokerHandRankResult {
         const count = _.countBy(cards, c => c.suit)
         const s = _.keys(count).find(s => count[s] >= 5)
-        return {
+        if (s) return {
             rank: PokerHandRank.FLUSH,
             values: _.sortBy(cards.filter(c => c.suit === s).map(c => c.rank), r => -r).slice(0, 5),
             suit: <CardSuit> s
@@ -169,7 +169,7 @@ export class PokerHand {
     static checkThreeOfAKind(cards: Card[]): PokerHandRankResult {
         const count = _.countBy(cards, c => c.rank)
         const tripRank = Number(_.keys(count).find(r => count[r] === 3))
-        if (!_.isNil(tripRank)) return {
+        if (!_.isNaN(tripRank)) return {
             rank: PokerHandRank.THREE_OF_A_KIND,
             values: [tripRank, ..._.chain(cards).map(c => c.rank === tripRank ? 0 : c.rank).sortBy(r => -r).slice(0, 2).value()]
         }
@@ -188,10 +188,10 @@ export class PokerHand {
         }
     }
 
-    static checkPairs(cards: Card[]): PokerHandRankResult {
+    static checkOnePair(cards: Card[]): PokerHandRankResult {
         const count = _.countBy(cards, c => c.rank)
         const pair = Number(_.keys(count).find(r => count[r] === 2))
-        if (!_.isNil(pair)) {
+        if (!_.isNaN(pair)) {
             return {
                 rank: PokerHandRank.ONE_PAIR,
                 values: [pair, ..._.chain(cards).map(c => c.rank === pair ? 0 : c.rank).sortBy(r => -r).slice(0, 3).value()]
@@ -201,7 +201,7 @@ export class PokerHand {
 
     static highCards(cards: Card[]): PokerHandRankResult {
         return {
-            rank: PokerHandRank.ONE_PAIR,
+            rank: PokerHandRank.HIGH_CARD,
             values: _.chain(cards).map(c => c.rank).sortBy(r => -r).slice(0, 5).value()
         }
     }

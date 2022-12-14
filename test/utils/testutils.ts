@@ -1,12 +1,10 @@
-import _ from 'lodash';
+import 'mocha';
+import Program from '../../app';
 import '../hook';
 import chai = require('chai');
 import chaiAsPromised = require('chai-as-promised');
 import chaiHttp = require('chai-http');
 import spies = require('chai-spies');
-import 'mocha';
-import ENV from '../../glob/env';
-import Program from '../../app';
 import moment = require('moment');
 
 chai.use(<any>spies);
