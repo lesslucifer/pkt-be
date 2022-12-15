@@ -19,14 +19,18 @@ export const BASE_CARDS: Card[] = _.chain(_.range(2, 15)).flatMap(r => _.values(
 
 export class Deck {
     cards: Card[] = [...BASE_CARDS]
+    dealtCards: Card[] = []
     dealtIndex = 0
 
     shuffle() {
-        // no shuffle
+        // TODO: shuffle
+        _.shuffle(this.cards)
     }
 
     deal(): Card {
         if (this.dealtIndex >= this.cards.length) throw new Error(`Deck overflow`)
-        return this.cards[this.dealtIndex++]
+        const card = this.cards[this.dealtIndex++]
+        this.dealtCards.push(card)
+        return card
     }
 }

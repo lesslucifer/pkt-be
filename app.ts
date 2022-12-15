@@ -10,6 +10,7 @@ import winston = require('winston/lib/winston/config');
 import terminate from './serv/terminate';
 import createSesssionObject from './serv/sess';
 import _ from 'lodash';
+import GameServ from './serv/game.serv';
 
 export class Program {
     static server: express.Express;
@@ -36,6 +37,8 @@ export class Program {
             if (req.session.user || req.session.system) return this.expressRouterError(new AppLogicError(`Permission denied!`, 403), req, resp);
             return this.expressRouterError(new AppLogicError(`Cannot ${req.method} ${req.url}! API not found`, 404), req, resp)
         });
+
+        GameServ.startup()
     }
 
     public static async main(): Promise<number> {
@@ -49,12 +52,16 @@ export class Program {
 
         const exitHandler = terminate(appServer, {
             coredump: false,
-            timeout: 500
+            timeout: 5000
         })
         process.on('uncaughtException', exitHandler(1, 'Unexpected Error'))
         process.on('unhandledRejection', exitHandler(1, 'Unhandled Promise'))
         process.on('SIGTERM', exitHandler(0, 'SIGTERM'))
         process.on('SIGINT', exitHandler(0, 'SIGINT'))
+        process.on('SIGUSR1', exitHandler(0, 'SIGUSR1'))
+        process.on('SIGUSR2', exitHandler(0, 'SIGUSR2'))
+        process.on('exit', exitHandler(0, 'exit'))
+        process.on('beforeExit', exitHandler(0, 'beforeExit'))
 
         return 0;
     }

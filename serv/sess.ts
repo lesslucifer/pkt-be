@@ -1,11 +1,15 @@
 import * as express from 'express';
 import * as uuid from 'uuid';
+import { Game, GamePlayer } from '../models/game';
 
 export class AuthUserSession {
     constructor(public id: string, public roles: string[]) {}
 }
 
 interface IReqSession {
+    playerId?: string;
+    gamePlayer?: GamePlayer;
+    game?: Game;
     user?: AuthUserSession;
     system?: string;
 }

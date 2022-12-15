@@ -1,4 +1,5 @@
 import _ from "lodash";
+import moment from "moment";
 import { GameHand, HandPlayer } from "./game-hand"
 
 export enum GameStatus {
@@ -19,6 +20,7 @@ export class Game {
     seats: GamePlayer[] = Array(9).fill(null)
     hand?: GameHand = null
     dealerSeat = 0
+    lastActive: moment.Moment = moment()
 
     join(player: GamePlayer) {
         this.players.push(player)
@@ -70,7 +72,10 @@ export enum GamePlayerStatus {
 }
 
 export class GamePlayer {
-    id: string
-    status: GamePlayerStatus
-    bank: number
+    status: GamePlayerStatus = GamePlayerStatus.ACTIVE
+    bank: number = 0
+
+    constructor(public id: string, public game: Game) {
+        
+    }
 }
