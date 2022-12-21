@@ -24,7 +24,7 @@ export class Deck {
 
     shuffle() {
         // TODO: shuffle
-        _.shuffle(this.cards)
+        this.cards = _.shuffle(this.cards)
     }
 
     deal(): Card {

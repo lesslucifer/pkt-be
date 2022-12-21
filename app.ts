@@ -90,7 +90,7 @@ export class Program {
         }
         appResp.httpCode = _.isNumber(err.httpCode) ? err.httpCode : 500;
 
-        console.error(err, req);
+        console.error(err);
         this.doResponse(appResp, resp);
     }
 

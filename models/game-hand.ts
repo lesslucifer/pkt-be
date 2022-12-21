@@ -70,7 +70,8 @@ export class GameHand {
     }
 
     bet(player: HandPlayer, amount: number) {
-        if (this.players[this.index] !== player) throw new Error(`Invalid betting player`)
+        // TODO: VALIDATE betting amount
+        if (this.round !== HandRound.BLIND && this.players[this.index] !== player) throw new Error(`Invalid betting player`)
 
         player.betting = Math.min(amount, player.player.bank)
         player.player.bank -= player.betting
@@ -90,7 +91,7 @@ export class GameHand {
                 return
             }
         }
-        else if (this.index >= this.players.length) {
+        else if (this.index >= this.players.length && this.round !== HandRound.BLIND) {
             this.completeRound()
             return
         }

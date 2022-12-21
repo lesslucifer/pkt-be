@@ -7,7 +7,7 @@ export function Player() {
 }
 
 export function CurrentGame() {
-    return argMapperDecor(req => req.session.playerId)
+    return argMapperDecor(req => req.session.game)
 }
 
 export function CurrentPlayer() {
@@ -17,7 +17,7 @@ export function CurrentPlayer() {
 export function IntParams(param: string) {
     return argMapperDecor(req => {
         const val = Number(req.params[param])
-        if (!_.isNaN(val)) throw new AppLogicError(`Param ${param} must be integer, found ${val}`)
+        if (_.isNaN(val)) throw new AppLogicError(`Param ${param} must be integer, found ${val}`)
         return val
     })
 }
