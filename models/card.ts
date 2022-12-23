@@ -11,7 +11,13 @@ export enum CardSuit {
 export class Card {
     public readonly desc: string
     constructor(public readonly rank: number, public readonly suit: CardSuit) {
-        this.desc = `${this.rank}:${this.suit}`
+        const rankDesc = rank <= 10 ? `${rank}` : {
+            11: 'J',
+            12: 'Q',
+            13: 'K',
+            14: 'A'
+        }[rank]
+        this.desc = `${rankDesc}:${this.suit}`
     }
 }
 

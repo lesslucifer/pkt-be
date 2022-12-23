@@ -16,6 +16,16 @@ class GamesRouter extends ExpressRouter {
         return [...GameServ.games.values()]
     }
 
+    @GET({path: "/"})
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async getCurrentGame(@CurrentGame() game: Game) {
+        return {
+            ...game.toJSON(),
+            hand: game.hand?.toJSON()
+        }
+    }
+
     @POST({path: "/new-game"})
     @AuthServ.authPlayer()
     async createNewGame(@Player() playerId: string) {
@@ -68,7 +78,9 @@ class GamesRouter extends ExpressRouter {
         game.hand = undefined
         game.startNewHand()
 
-        return HC.SUCCESS
+        return {
+            id: game.hand?.id
+        }
     }
 
     @PUT({path: "/actions"})

@@ -60,7 +60,7 @@ export class Game {
             this.dealerSeat = (this.dealerSeat + 1) % this.seats.length
         }
 
-        const hand = new GameHand()
+        const hand = new GameHand(this)
         hand.players = _.range(this.seats.length)
             .map(i => (i + this.dealerSeat + 1) % this.seats.length)
             .filter(i => this.seats[i])
