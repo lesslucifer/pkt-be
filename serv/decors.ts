@@ -2,7 +2,7 @@ import { argMapperDecor } from "express-router-ts";
 import _ from "lodash";
 import { AppLogicError } from "../utils/hera";
 
-export function Player() {
+export function PlayerId() {
     return argMapperDecor(req => req.session.playerId)
 }
 
@@ -10,7 +10,7 @@ export function CurrentGame() {
     return argMapperDecor(req => req.session.game)
 }
 
-export function CurrentPlayer() {
+export function Player() {
     return argMapperDecor(req => req.session.gamePlayer)
 }
 

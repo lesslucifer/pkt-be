@@ -22,6 +22,7 @@ export class Card {
 }
 
 export const BASE_CARDS: Card[] = _.chain(_.range(2, 15)).flatMap(r => _.values(CardSuit).map(s => new Card(r, s))).value()
+export const MASKED_CARD: Card = new Card(0, CardSuit.HEART)
 
 export class Deck {
     cards: Card[] = [...BASE_CARDS]

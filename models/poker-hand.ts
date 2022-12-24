@@ -21,10 +21,7 @@ export interface PokerHandRankResult {
 }
 
 export interface PokerHandResult extends PokerHandRankResult {
-    holeCards: Card[]
-    communityCards: Card[]
     selectedCard: Card[]
-
     holeCardIndexes: number[]
     communityCardsIndexes: number[]
 }
@@ -45,8 +42,6 @@ export class PokerHand {
 
         const result: PokerHandResult = {
             ...rankResult,
-            holeCards,
-            communityCards,
             selectedCard: this.getSelectedCard(cards, rankResult),
             holeCardIndexes: [],
             communityCardsIndexes: [],
@@ -207,6 +202,7 @@ export class PokerHand {
     }
 
     static compare(h1: PokerHandResult, h2: PokerHandResult) {
+        if (_.isNil(h1) || _.isNil(h2)) return !_.isNil(h1) ? 1 : !_.isNil(h2) ? -1 : 0
         if (h1.rank > h2.rank) return 1
         if (h1.rank < h2.rank) return -1
 

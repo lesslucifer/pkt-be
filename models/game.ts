@@ -1,6 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
-import { GameHand, HandPlayer } from "./game-hand"
+import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
 
 export enum GameStatus {
     STOPPED = 'STOPPED',
@@ -22,12 +22,20 @@ export class Game {
     dealerSeat = 0
     lastActive: moment.Moment = moment()
 
+    getReadyPlayers() {
+        return this.seats.filter(pid => {
+            const player = this.players.get(pid)
+            return player && player.stack > 0 && player.status === GamePlayerStatus.ACTIVE
+        })
+    }
+
     getPlayerAt(seat: number) {
         if (seat < 0 || seat >= this.seats.length) return null
         return this.players.get(this.seats[seat])
     }
 
     join(player: GamePlayer) {
+        player.status = GamePlayerStatus.ACTIVE
         this.players.set(player.id, player)
     }
 
@@ -36,29 +44,40 @@ export class Game {
         if (this.seats[seatIndex]) throw new Error(`This seat is taken already`)
         const p = this.players.get(id)
         if (!p) throw new Error(`Cannot find play with id ${id}`)
+        if (p.stack <= 0) throw new Error(`Cannot take seat with empty stack`)
         this.seats[seatIndex] = p.id
     }
 
     start() {
         if (this.status !== GameStatus.STOPPED) throw new Error(`Cannot start game, invalid game state`)
-        const activePlayers = this.seats.filter(pid => this.players.get(pid)?.status === GamePlayerStatus.ACTIVE)
-        if (activePlayers.length < 2) throw new Error(`Cannot start game, players are inactive`)
+        const readyPlayers = this.getReadyPlayers()
+        if (readyPlayers.length < 2) throw new Error(`Cannot start game, players are inactive`)
         this.status = GameStatus.PLAYING
         this.startNewHand()
     }
 
     startNewHand() {
         if (this.status !== GameStatus.PLAYING) throw new Error(`Cannot start new hand, invalid game state`)
-        if (this.hand) throw new Error(`Cannot start new hand, already having an incompleted game`)
-        const activePlayers = this.seats.filter(pid => this.players.get(pid)?.status === GamePlayerStatus.ACTIVE)
-        if (activePlayers.length < 2) {
+        if (this.hand && this.hand.status !== GameHandStatus.OVER) throw new Error(`Cannot start new hand, already having an incompleted game`)
+
+        this.players.forEach(p => {
+            if (p.stack <= 0) {
+                const idx = this.seats.indexOf(p.id)
+                if (idx >= 0) {
+                    this.seats[idx] = null
+                }
+            }
+        })
+
+        const readyPlayers = this.getReadyPlayers()
+        if (readyPlayers.length < 2) {
             this.status = GameStatus.STOPPED
             return
         }
 
-        while (!this.seats[this.dealerSeat]) {
+        do {
             this.dealerSeat = (this.dealerSeat + 1) % this.seats.length
-        }
+        } while (!this.seats[this.dealerSeat])
 
         const hand = new GameHand(this)
         hand.players = _.range(this.seats.length)
@@ -81,6 +100,19 @@ export class Game {
             lastActive: this.lastActive
         }
     }
+
+    toJSONWithHand(player?: GamePlayer) {
+        return {
+            id: this.id,
+            ownerId: this.ownerId,
+            status: this.status,
+            seats: this.seats,
+            players: _.fromPairs([...this.players.entries()]),
+            dealerSeat: this.dealerSeat,
+            lastActive: this.lastActive,
+            hand: this.hand?.toJSON(player)
+        }
+    }
 }
 
 export enum GamePlayerStatus {
@@ -90,7 +122,7 @@ export enum GamePlayerStatus {
 
 export class GamePlayer {
     status: GamePlayerStatus = GamePlayerStatus.ACTIVE
-    bank: number = 0
+    stack: number = 0
 
     constructor(public id: string, public game: Game) {
         
@@ -100,7 +132,7 @@ export class GamePlayer {
         return {
             id: this.id,
             status: this.status,
-            bank: this.bank
+            stack: this.stack
         }
     }
 }
