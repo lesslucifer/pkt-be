@@ -4,7 +4,7 @@ export const CORS_DEFAULT = {
     ORIGIN: '*',
     METHODS: 'OPTIONS, POST, GET, PUT, DELETE',
     AGE: '86400',
-    HEADERS: 'X-Requested-With, X-HTTP-Method-Override,Content-Type, Accept, Authentication, Authorization, X-Consumer-Username'
+    HEADERS: 'X-Requested-With, X-HTTP-Method-Override,Content-Type, Accept, Authentication, Authorization, X-Consumer-Username, x-player-id, x-game-id'
 }
 
 
