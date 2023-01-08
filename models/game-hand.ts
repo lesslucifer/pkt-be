@@ -245,6 +245,7 @@ export class GameHand {
 
     closeHand() {
         this.status = GameHandStatus.OVER
+        this.game.handOver()
         setTimeout(() => this.game.startNewHand(), 500)
     }
 

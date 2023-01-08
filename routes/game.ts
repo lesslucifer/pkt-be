@@ -24,21 +24,39 @@ class GamesRouter extends ExpressRouter {
         return HC.SUCCESS
     }
 
+    @PUT({path: "/seats/leave"})
+    @AuthServ.authGamePlayer()
+    async leaveSeat(@Player() gamePlayer: GamePlayer) {
+        gamePlayer.game.addNoHandAction({
+            action: 'LEAVE_SEAT',
+            params: { playerId: gamePlayer.id }
+        })
+        return gamePlayer.game.toJSONWithHand(gamePlayer)
+    }
+
     @PUT({path: "/seats/:seat"})
     @ValidBody({
         '+@buyIn': 'integer'
     })
-    @AuthServ.authGamePlayer()
-    async takeSeat(@Player() gamePlayer: GamePlayer,
+    @AuthServ.authGame()
+    @AuthServ.authPlayer()
+    async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
     @IntParams('seat') seat: number, @Body('buyIn') buyIn: number) {
-        const game = gamePlayer.game
         if (game.seats[seat]) throw new AppLogicError(`The seat is already taken`)
-        if (gamePlayer.stack + buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
+        if (!game.players.has(playerId)) {
+            game.players.set(playerId, new GamePlayer(playerId, game))
+        }
 
-        gamePlayer.stack += buyIn
+        const gamePlayer = game.players.get(playerId)
+        if (game.seats.find(s => s === playerId)) throw new AppLogicError(`Player have seat already`)
+        if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
+
+        gamePlayer.buyOut += gamePlayer.stack
+        gamePlayer.buyIn += buyIn
+        gamePlayer.stack = buyIn
         game.seats[seat] = gamePlayer.id
 
-        return HC.SUCCESS
+        return game.toJSONWithHand(gamePlayer)
     }
 
     @PUT({path: "/status/playing"})

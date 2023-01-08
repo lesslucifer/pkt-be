@@ -44,7 +44,7 @@ export class AuthServ {
                 if (!game) throw new AppLogicError(`Cannot find game ${gameId}`, 404)
 
                 const gp = game.players.get(playerId)
-                if (!gp) throw new AppLogicError(`User did not join the game`, 400)
+                if (!gp) throw new AppLogicError(`User is not in the game`, 400)
 
                 req.session.playerId =  playerId
                 req.session.game = game

@@ -7,6 +7,11 @@ export enum GameStatus {
     PLAYING = 'PLAYING',
 }
 
+export interface INoHandAction {
+    action: string
+    params: _.Dictionary<any>
+}
+
 export class Game {
     constructor(id: string, ownerId: string) {
         this.id = id;
@@ -18,6 +23,7 @@ export class Game {
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
     seats: string[] = Array(9).fill(null)
+    noHandActions: INoHandAction[] = []
     hand?: GameHand = null
     dealerSeat = 0
     lastActive: moment.Moment = moment()
@@ -89,6 +95,33 @@ export class Game {
         hand.start()
     }
 
+    handOver() {
+        const noHandActions = this.noHandActions
+        this.noHandActions = []
+        noHandActions.forEach(action => this.performNoHandAction(action))
+    }
+
+    addNoHandAction(action: INoHandAction) {
+        if (!this.hand) {
+            this.performNoHandAction(action)
+        }
+        else {
+            this.noHandActions.push(action)
+        }
+    }
+
+    performNoHandAction(action: INoHandAction) {
+        if (action.action === 'LEAVE_SEAT') {
+            const idx = this.seats.findIndex(s => s === action.params.playerId)
+            if (idx >= 0) this.seats[idx] = null
+            const player = this.players.get(action.params.playerId)
+            if (player) {
+                player.buyOut += player.stack
+                player.stack = 0
+            }
+        }
+    }
+
     toJSON() {
         return {
             id: this.id,
@@ -123,6 +156,8 @@ export enum GamePlayerStatus {
 export class GamePlayer {
     status: GamePlayerStatus = GamePlayerStatus.ACTIVE
     stack: number = 0
+    buyIn: number = 0
+    buyOut: number = 0
 
     constructor(public id: string, public game: Game) {
         
