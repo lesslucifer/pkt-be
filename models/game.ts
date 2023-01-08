@@ -1,5 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
+import { AppLogicError } from "../utils/hera";
 import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
 
 export enum GameStatus {
@@ -99,6 +100,8 @@ export class Game {
         const noHandActions = this.noHandActions
         this.noHandActions = []
         noHandActions.forEach(action => this.performNoHandAction(action))
+        this.hand = null
+        setTimeout(() => this.startNewHand(), 500)
     }
 
     addNoHandAction(action: INoHandAction) {
@@ -111,7 +114,24 @@ export class Game {
     }
 
     performNoHandAction(action: INoHandAction) {
-        if (action.action === 'LEAVE_SEAT') {
+        if (action.action === 'TAKE_SEAT') {
+            const { playerId, seat, buyIn } = action.params
+
+            if (this.seats[seat]) throw new AppLogicError(`The seat is already taken`)
+            if (!this.players.has(playerId)) {
+                this.players.set(playerId, new GamePlayer(playerId, this))
+            }
+
+            const gamePlayer = this.players.get(playerId)
+            if (this.seats.includes(playerId)) throw new AppLogicError(`Player have seat already`)
+            if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
+
+            gamePlayer.buyOut += gamePlayer.stack
+            gamePlayer.buyIn += buyIn
+            gamePlayer.stack = buyIn
+            this.seats[seat] = gamePlayer.id
+        }
+        else if (action.action === 'LEAVE_SEAT') {
             const idx = this.seats.findIndex(s => s === action.params.playerId)
             if (idx >= 0) this.seats[idx] = null
             const player = this.players.get(action.params.playerId)

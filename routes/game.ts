@@ -42,21 +42,15 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
     @IntParams('seat') seat: number, @Body('buyIn') buyIn: number) {
-        if (game.seats[seat]) throw new AppLogicError(`The seat is already taken`)
-        if (!game.players.has(playerId)) {
-            game.players.set(playerId, new GamePlayer(playerId, game))
-        }
-
-        const gamePlayer = game.players.get(playerId)
-        if (game.seats.find(s => s === playerId)) throw new AppLogicError(`Player have seat already`)
-        if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
-
-        gamePlayer.buyOut += gamePlayer.stack
-        gamePlayer.buyIn += buyIn
-        gamePlayer.stack = buyIn
-        game.seats[seat] = gamePlayer.id
-
-        return game.toJSONWithHand(gamePlayer)
+        game.addNoHandAction({
+            action: 'TAKE_SEAT',
+            params: {
+                playerId,
+                seat,
+                buyIn
+            }
+        })
+        return game.toJSONWithHand(game.players.get(playerId))
     }
 
     @PUT({path: "/status/playing"})
