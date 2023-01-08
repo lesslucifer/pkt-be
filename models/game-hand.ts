@@ -337,6 +337,8 @@ export class GameHand {
             roundPlayers: this.roundPlayers.map(i => this.players[i].player.id),
             pot: this.pot,
             fullPot: this.fullPot,
+            betting: this.betting,
+            minRaise: this.minRaise
         }
     }
 

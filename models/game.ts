@@ -56,11 +56,12 @@ export class Game {
     }
 
     start() {
-        if (this.status !== GameStatus.STOPPED) throw new Error(`Cannot start game, invalid game state`)
         const readyPlayers = this.getReadyPlayers()
         if (readyPlayers.length < 2) throw new Error(`Cannot start game, players are inactive`)
         this.status = GameStatus.PLAYING
-        this.startNewHand()
+        if (!this.hand || this.hand.status === GameHandStatus.OVER) {
+            this.startNewHand()
+        }
     }
 
     startNewHand() {
