@@ -39,6 +39,7 @@ export class HandPlayer {
             seatIndex: this.seatIndex,
             status: this.status,
             betting: this.betting,
+            stack: this.player.stack,
             cards: this.cardJSON(player)
         }
     }
@@ -134,7 +135,7 @@ export class GameHand {
             player.status = HandPlayerStatus.ALL_IN
         }
         else if (amount > this.betting) { // raise
-            if (amount - this.betting < this.minRaise) throw Error(`Invalid betting amount, to low raise, at least ${this.minRaise}`)
+            if (amount - this.betting < this.minRaise) throw Error(`Invalid betting amount, to low raise, at least ${this.betting + this.minRaise}`)
             if (this.players.find(p => p.status === HandPlayerStatus.ALL_IN)) throw Error(`Cannot raise, there was a player alled in`)
         }
         else if (amount < this.betting) {
