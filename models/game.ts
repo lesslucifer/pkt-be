@@ -1,5 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
+import RealtimeServ from "../serv/realtime.serv";
 import { AppLogicError } from "../utils/hera";
 import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
 
@@ -166,6 +167,23 @@ export class Game {
             lastActive: this.lastActive,
             hand: this.hand?.toJSON(player)
         }
+    }
+
+    updateToClients() {
+        this.players.forEach((p, pid) => {
+            console.log(`Send update to player ${p.id}`)
+            const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
+            if (!sockets.length) return
+
+            console.log(`Send update to player ${p.id}`)
+            const data = this.toJSONWithHand(p)
+            sockets.forEach(s => s.emit('update', data))
+        })
+    }
+
+    connect(playerId: string, socketId: string) {
+        if (!this.players.has(playerId)) throw new AppLogicError(`Cannot connect to socketio, player not found`, 404)
+        RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
     }
 }
 

@@ -11,6 +11,7 @@ import terminate from './serv/terminate';
 import createSesssionObject from './serv/sess';
 import _ from 'lodash';
 import GameServ from './serv/game.serv';
+import RealtimeServ from './serv/realtime.serv';
 
 export class Program {
     static server: express.Express;
@@ -49,6 +50,8 @@ export class Program {
                 this.server.listen(ENV.HTTP_PORT, () => console.log(`Listen on port ${ENV.HTTP_PORT}...`))
             )
         });
+
+        RealtimeServ.init(appServer)
 
         const exitHandler = terminate(appServer, {
             coredump: false,

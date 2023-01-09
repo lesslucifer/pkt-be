@@ -1,4 +1,4 @@
-import { Body, ExpressRouter, GET, POST, PUT } from "express-router-ts";
+import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import HC from "../glob/hc";
 import { Game, GamePlayer } from "../models/game";
 import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
@@ -31,7 +31,10 @@ class GamesRouter extends ExpressRouter {
             action: 'LEAVE_SEAT',
             params: { playerId: gamePlayer.id }
         })
-        return gamePlayer.game.toJSONWithHand(gamePlayer)
+
+        gamePlayer.game.updateToClients()
+
+        return HC.SUCCESS
     }
 
     @PUT({path: "/seats/:seat"})
@@ -50,7 +53,9 @@ class GamesRouter extends ExpressRouter {
                 buyIn
             }
         })
-        return game.toJSONWithHand(game.players.get(playerId))
+
+        game.updateToClients()
+        return HC.SUCCESS
     }
 
     @PUT({path: "/status/playing"})
@@ -58,6 +63,7 @@ class GamesRouter extends ExpressRouter {
     async startGame(@Player() gamePlayer: GamePlayer) {
         const game = gamePlayer.game
         game.start()
+        game.updateToClients()
 
         return HC.SUCCESS
     }
@@ -70,8 +76,9 @@ class GamesRouter extends ExpressRouter {
 
         game.hand = undefined
         game.startNewHand()
+        game.updateToClients()
 
-        return game.toJSONWithHand(player)
+        return HC.SUCCESS
     }
 
     @PUT({path: "/actions"})
@@ -85,8 +92,16 @@ class GamesRouter extends ExpressRouter {
         if (!game.hand) throw new AppLogicError(`Cannot take action, no current hand`)
 
         game.hand.takeAction(player, action)
+        game.updateToClients()
 
-        return game.toJSONWithHand(player)
+        return HC.SUCCESS
+    }
+
+    @POST({path: "/sockets/:socketId"})
+    @AuthServ.authGamePlayer()
+    async bindSocket(@Player() player: GamePlayer, @Params('socketId') socketId: string) {
+        player.game?.connect(player.id, socketId)
+        return HC.SUCCESS
     }
 }
 
