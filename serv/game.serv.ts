@@ -47,6 +47,17 @@ export class GameService {
                 console.log(`Save game error`, err)
             }
         }, 60000)
+        setInterval(() => {
+            this.games.forEach(g => {
+                try {
+                    g.sendUpdateToClients()
+                }
+                catch (err) {
+                    console.log(`Game ${g.id} send update to clients error`)
+                    console.log(err)
+                }
+            })
+        }, 200)
     }
 }
 

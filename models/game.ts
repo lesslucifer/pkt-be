@@ -28,6 +28,7 @@ export class Game {
     noHandActions: INoHandAction[] = []
     hand?: GameHand = null
     dealerSeat = 0
+    isDirty = true
     lastActive: moment.Moment = moment()
 
     getReadyPlayers() {
@@ -45,6 +46,7 @@ export class Game {
     join(player: GamePlayer) {
         player.status = GamePlayerStatus.ACTIVE
         this.players.set(player.id, player)
+        this.markDirty()
     }
 
     takeSeat(id: string, seatIndex: number) {
@@ -54,6 +56,7 @@ export class Game {
         if (!p) throw new Error(`Cannot find play with id ${id}`)
         if (p.stack <= 0) throw new Error(`Cannot take seat with empty stack`)
         this.seats[seatIndex] = p.id
+        this.markDirty()
     }
 
     start() {
@@ -81,6 +84,8 @@ export class Game {
         const readyPlayers = this.getReadyPlayers()
         if (readyPlayers.length < 2) {
             this.status = GameStatus.STOPPED
+            this.hand = null
+            this.markDirty()
             return
         }
 
@@ -96,13 +101,15 @@ export class Game {
         this.hand = hand
 
         hand.start()
+        this.markDirty()
     }
 
     handOver() {
         const noHandActions = this.noHandActions
         this.noHandActions = []
         noHandActions.forEach(action => this.performNoHandAction(action))
-        this.hand = null
+        // this.hand = null
+        this.markDirty()
         setTimeout(() => this.startNewHand(), 500)
     }
 
@@ -142,6 +149,7 @@ export class Game {
                 player.stack = 0
             }
         }
+        this.markDirty()
     }
 
     toJSON() {
@@ -169,13 +177,18 @@ export class Game {
         }
     }
 
-    updateToClients() {
+    markDirty() {
+        this.isDirty = true
+    }
+
+    sendUpdateToClients() {
+        if (!this.isDirty) return
+        this.isDirty = false
         this.players.forEach((p, pid) => {
-            console.log(`Send update to player ${p.id}`)
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
 
-            console.log(`Send update to player ${p.id}`)
+            console.log(`Game ${this.id}: Send update to player ${p.id}; No sockets: ${sockets.length};`)
             const data = this.toJSONWithHand(p)
             sockets.forEach(s => s.emit('update', data))
         })
@@ -184,6 +197,7 @@ export class Game {
     connect(playerId: string, socketId: string) {
         if (!this.players.has(playerId)) throw new AppLogicError(`Cannot connect to socketio, player not found`, 404)
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
+        this.markDirty()
     }
 }
 

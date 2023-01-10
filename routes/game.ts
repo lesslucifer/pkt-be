@@ -1,7 +1,7 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import HC from "../glob/hc";
 import { Game, GamePlayer } from "../models/game";
-import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
+import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
 import { ValidBody } from "../utils/decors";
@@ -32,7 +32,7 @@ class GamesRouter extends ExpressRouter {
             params: { playerId: gamePlayer.id }
         })
 
-        gamePlayer.game.updateToClients()
+        gamePlayer.game.markDirty()
 
         return HC.SUCCESS
     }
@@ -54,7 +54,7 @@ class GamesRouter extends ExpressRouter {
             }
         })
 
-        game.updateToClients()
+        game.markDirty()
         return HC.SUCCESS
     }
 
@@ -63,7 +63,7 @@ class GamesRouter extends ExpressRouter {
     async startGame(@Player() gamePlayer: GamePlayer) {
         const game = gamePlayer.game
         game.start()
-        game.updateToClients()
+        game.markDirty()
 
         return HC.SUCCESS
     }
@@ -76,7 +76,7 @@ class GamesRouter extends ExpressRouter {
 
         game.hand = undefined
         game.startNewHand()
-        game.updateToClients()
+        game.markDirty()
 
         return HC.SUCCESS
     }
@@ -92,7 +92,25 @@ class GamesRouter extends ExpressRouter {
         if (!game.hand) throw new AppLogicError(`Cannot take action, no current hand`)
 
         game.hand.takeAction(player, action)
-        game.updateToClients()
+
+        return game.toJSONWithHand(player)
+    }
+
+    @PUT({path: "/hand/showCards/true"})
+    @AuthServ.authGamePlayer()
+    async showCards(@Player() player: GamePlayer, @Body() action: IPlayerAction) {
+        const hand = player.game.hand
+        if (!hand || hand.round !== HandRound.DONE || hand.status != GameHandStatus.SHOWING_DOWN) {
+            throw new AppLogicError(`Cannot show cards! Hand round and status mismatch`)
+        }
+    
+        const hp = hand.players.find(p => p.player.id === player.id)
+        if (!hp) throw new AppLogicError(`Player not in the hand`)
+        
+        if (!hp.showCard) {
+            hp.showCard = true
+            player.game.markDirty()
+        }
 
         return HC.SUCCESS
     }

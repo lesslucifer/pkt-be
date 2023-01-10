@@ -40,12 +40,14 @@ export class HandPlayer {
             status: this.status,
             betting: this.betting,
             stack: this.player.stack,
+            result: this.result,
+            showCard: this.showCard,
             cards: this.cardJSON(player)
         }
     }
 
     cardJSON(player?: GamePlayer) {
-        if (!this.cards.length && this.showCard || player?.id === this.player.id) {
+        if (!this.cards.length || this.showCard || player?.id === this.player.id) {
             return this.cards
         }
 
@@ -57,7 +59,7 @@ export class HandPlayer {
 export enum ActionType {
     BET = 'BET',
     FOLD = 'FOLD',
-    TIME = 'TIME'
+    TIME = 'TIME',
 }
 
 export interface IPlayerAction {
@@ -73,6 +75,11 @@ export enum GameHandStatus {
     OVER = 'OVER',
 }
 
+export interface GameHandWinner {
+    id: string
+    amount: number
+}
+
 export class GameHand {
     id: string
     deck: Deck = new Deck()
@@ -81,6 +88,7 @@ export class GameHand {
     status: GameHandStatus = GameHandStatus.READY
     round: HandRound = HandRound.PRE_FLOP
     communityCards: Card[] = []
+    winners: GameHandWinner[]
     pot = 0
     betting = 0
     minRaise = 0
@@ -109,6 +117,8 @@ export class GameHand {
             this.betting = 20
             this.minRaise = 20
         }
+
+        this.game.markDirty()
     }
 
     deal() {
@@ -119,6 +129,8 @@ export class GameHand {
         this.players.forEach(p => {
             p.cards = [this.deck.deal(), this.deck.deal()]
         })
+
+        this.game.markDirty()
     }
 
     bet(player: HandPlayer, amount: number) {
@@ -155,6 +167,7 @@ export class GameHand {
         this.betting = Math.max(this.betting, amount)
 
         player.betting = Math.min(amount, player.player.stack)
+        this.game.markDirty()
     }
 
     moveNext() {
@@ -166,6 +179,7 @@ export class GameHand {
         if (this.roundPlayers.length <= 0) {
             this.completeRound()
         }
+        this.game.markDirty()
     }
 
     completeRound() {
@@ -184,6 +198,7 @@ export class GameHand {
         }
 
         this.dealNextRound()
+        this.game.markDirty()
     }
 
     commitPot() {
@@ -193,6 +208,7 @@ export class GameHand {
             this.pot += betAmount
             p.betting = 0
         })
+        this.game.markDirty()
     }
 
     dealNextRound() {
@@ -209,6 +225,7 @@ export class GameHand {
             this.deck.deal() // burn
             this.communityCards.push(this.deck.deal())
         }
+        this.game.markDirty()
     }
 
     completeHand() {
@@ -217,14 +234,6 @@ export class GameHand {
         
         const players = this.players.filter(p => p.status !== HandPlayerStatus.FOLDED)
         players.forEach(p => p.result = PokerHand.calcHand(p.cards, this.communityCards))
-
-        console.log(`Complete hand`)
-        console.log(`Comunity cards`, this.communityCards.map(c => c.desc))
-        console.log(`Players`, players.map(p => ({
-            id: p.player.id,
-            cards: p.cards.map(c => c.desc),
-            result: p.result
-        })))
 
         let winners = [players[0]]
         for (let i = 1; i < players.length; ++i) {
@@ -239,6 +248,7 @@ export class GameHand {
             this.status = GameHandStatus.SHOWING_DOWN
         }
 
+        this.game.markDirty()
         setTimeout(() => {
             this.closeHand()
         }, 5000)
@@ -247,25 +257,26 @@ export class GameHand {
     closeHand() {
         this.status = GameHandStatus.OVER
         this.game.handOver()
+        this.game.markDirty()
     }
 
-    distPotToWinners(winners: HandPlayer[]) {
+    distPotToWinners(winners: HandPlayer[]): GameHandWinner[] {
         if (winners.length <= 0) return // TODO: Log error here, noway to have no winner
-        console.log(`Winner`, winners.map(p => ({
-            id: p.player.id,
-            cards: p.cards.map(c => c.desc)
-        })))
 
         // TODO: All in case
         const winPot = this.pot / winners.length
         const remain = winPot % winners.length
 
-        console.log(`Total win pot`, this.pot)
-
-        winners.forEach((w, i) => {
-            w.player.stack += winPot + (i < remain ? 1 : 0)
-            console.log(`Winner`, w.player.id, `take`, winPot + (i < remain ? 1 : 0), 'from pot')
+        this.winners = winners.map((w, i) => {
+            const amount = winPot + (i < remain ? 1 : 0)
+            w.player.stack += amount
+            w.showCard = true
+            return {
+                id: w.player.id,
+                amount
+            }
         })
+        this.game.markDirty()
     }
 
     checkTerminatedHand(): boolean {
@@ -294,8 +305,9 @@ export class GameHand {
         this.players.forEach(p => p.showCard = p.showCard || p.status === HandPlayerStatus.ALL_IN)
         while (this.round !== HandRound.DONE) {
             try {
-                await hera.sleep(300)
+                await hera.sleep(1000)
                 this.completeRound()
+                this.game.markDirty()
             }
             catch (err) {
                 // TODO: Log error, auto play should not have any errors
@@ -309,23 +321,25 @@ export class GameHand {
         if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot take action! Game is not playing`)
         if (this.status !== GameHandStatus.PLAYING) throw new AppLogicError(`Hand is not playing`)
         if (!this.roundPlayers.length || this.players[this.roundPlayers[0]].player.id !== player.id) throw new Error(`Not current player`)
-
-        if (action.action === ActionType.TIME) {
-            // TODO: add extra time
+        
+        if (action.action === ActionType.BET) {
+            if (_.isNil(action.amount)) throw new AppLogicError(`Must have bet amount`)
+            const hp = this.players.find(p => p.player.id === player.id)
+            this.bet(hp, action.amount)
         }
         else if (action.action === ActionType.FOLD) {
             const hp = this.players.find(p => p.player.id === player.id)
             hp.status = HandPlayerStatus.FOLDED
         }
-        else if (action.action === ActionType.BET) {
-            if (_.isNil(action.amount)) throw new AppLogicError(`Must have bet amount`)
-            const hp = this.players.find(p => p.player.id === player.id)
-            this.bet(hp, action.amount)
+        else if (action.action === ActionType.TIME) {
+            // TODO: add extra time
         }
 
         if (!this.checkTerminatedHand()) {
             this.moveNext()
         }
+
+        this.game.markDirty()
     }
 
     toJSON(player?: GamePlayer) {
@@ -339,7 +353,8 @@ export class GameHand {
             pot: this.pot,
             fullPot: this.fullPot,
             betting: this.betting,
-            minRaise: this.minRaise
+            minRaise: this.minRaise,
+            winners: this.winners
         }
     }
 
