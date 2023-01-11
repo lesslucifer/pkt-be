@@ -109,8 +109,8 @@ export class Game {
         this.noHandActions = []
         noHandActions.forEach(action => this.performNoHandAction(action))
         // this.hand = null
+        this.startNewHand()
         this.markDirty()
-        setTimeout(() => this.startNewHand(), 500)
     }
 
     addNoHandAction(action: INoHandAction) {
@@ -188,7 +188,6 @@ export class Game {
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
 
-            console.log(`Game ${this.id}: Send update to player ${p.id}; No sockets: ${sockets.length};`)
             const data = this.toJSONWithHand(p)
             sockets.forEach(s => s.emit('update', data))
         })

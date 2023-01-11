@@ -25,7 +25,7 @@ export class HandPlayer {
     cards: Card[]
     status: HandPlayerStatus = HandPlayerStatus.PLAYING
     result?: PokerHandResult
-    betting = 0
+    betting = null
     showCard = false
 
     constructor(p: GamePlayer, seatIndex: number) {
@@ -206,7 +206,7 @@ export class GameHand {
             const betAmount = Math.min(p.player.stack, p.betting)
             p.player.stack -= betAmount
             this.pot += betAmount
-            p.betting = 0
+            p.betting = null
         })
         this.game.markDirty()
     }
@@ -243,15 +243,19 @@ export class GameHand {
         }
 
         this.distPotToWinners(winners)
-        
+        this.moveToShowDown()
+    }
+
+    moveToShowDown() {
         if (this.status === GameHandStatus.PLAYING) {
             this.status = GameHandStatus.SHOWING_DOWN
         }
 
-        this.game.markDirty()
         setTimeout(() => {
             this.closeHand()
         }, 5000)
+        
+        this.game.markDirty()
     }
 
     closeHand() {
@@ -260,7 +264,7 @@ export class GameHand {
         this.game.markDirty()
     }
 
-    distPotToWinners(winners: HandPlayer[]): GameHandWinner[] {
+    distPotToWinners(winners: HandPlayer[], autoShowCard = true): GameHandWinner[] {
         if (winners.length <= 0) return // TODO: Log error here, noway to have no winner
 
         // TODO: All in case
@@ -270,7 +274,9 @@ export class GameHand {
         this.winners = winners.map((w, i) => {
             const amount = winPot + (i < remain ? 1 : 0)
             w.player.stack += amount
-            w.showCard = true
+            if (autoShowCard) {
+                w.showCard = true
+            }
             return {
                 id: w.player.id,
                 amount
@@ -292,8 +298,8 @@ export class GameHand {
         if (alledInPlayers.length + playingPlayers.length === 1) {
             this.commitPot()
             const winners = [...playingPlayers, ...alledInPlayers]
-            this.distPotToWinners(winners)
-            this.closeHand()
+            this.distPotToWinners(winners, false)
+            this.moveToShowDown()
             return true
         }
 
@@ -336,7 +342,9 @@ export class GameHand {
         }
 
         if (!this.checkTerminatedHand()) {
-            this.moveNext()
+            setTimeout(() => {
+                this.moveNext()
+            }, 500)
         }
 
         this.game.markDirty()
