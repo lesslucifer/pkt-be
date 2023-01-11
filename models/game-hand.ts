@@ -25,11 +25,13 @@ export class HandPlayer {
     cards: Card[]
     status: HandPlayerStatus = HandPlayerStatus.PLAYING
     result?: PokerHandResult
+    stack: number
     betting = null
     showCard = false
 
     constructor(p: GamePlayer, seatIndex: number) {
         this.player = p
+        this.stack = p.stack
         this.seatIndex = seatIndex
     }
 
@@ -39,7 +41,7 @@ export class HandPlayer {
             seatIndex: this.seatIndex,
             status: this.status,
             betting: this.betting,
-            stack: this.player.stack,
+            stack: this.stack,
             result: this.result,
             showCard: this.showCard,
             cards: this.cardJSON(player)
@@ -140,8 +142,8 @@ export class GameHand {
         const index = this.roundPlayers[0]
         if (!this.roundPlayers.length || this.players[index] !== player) throw new Error(`Invalid betting player`)
 
-        const maxOtherBet = _.maxBy(this.players, p => (p === player || p.status !== HandPlayerStatus.PLAYING ? 0 : p.player.stack)).player.stack
-        const maxBet = Math.min(player.player.stack, maxOtherBet)
+        const maxOtherBet = _.maxBy(this.players, p => (p === player || p.status !== HandPlayerStatus.PLAYING ? 0 : p.stack)).stack
+        const maxBet = Math.min(player.stack, maxOtherBet)
         if (amount >= maxBet) { // all in
             amount = maxBet
             player.status = HandPlayerStatus.ALL_IN
@@ -166,7 +168,7 @@ export class GameHand {
         this.minRaise = Math.max(this.minRaise, amount - this.betting)
         this.betting = Math.max(this.betting, amount)
 
-        player.betting = Math.min(amount, player.player.stack)
+        player.betting = Math.min(amount, player.stack)
         this.game.markDirty()
     }
 
@@ -203,8 +205,8 @@ export class GameHand {
 
     commitPot() {
         this.players.forEach(p => {
-            const betAmount = Math.min(p.player.stack, p.betting)
-            p.player.stack -= betAmount
+            const betAmount = Math.min(p.stack, p.betting)
+            p.stack -= betAmount
             this.pot += betAmount
             p.betting = null
         })
@@ -273,7 +275,7 @@ export class GameHand {
 
         this.winners = winners.map((w, i) => {
             const amount = winPot + (i < remain ? 1 : 0)
-            w.player.stack += amount
+            w.stack += amount
             if (autoShowCard) {
                 w.showCard = true
             }

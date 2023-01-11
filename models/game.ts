@@ -105,6 +105,7 @@ export class Game {
     }
 
     handOver() {
+        this.hand.players.forEach(hp => hp.player.stack = hp.stack)
         const noHandActions = this.noHandActions
         this.noHandActions = []
         noHandActions.forEach(action => this.performNoHandAction(action))
@@ -171,6 +172,7 @@ export class Game {
             status: this.status,
             seats: this.seats,
             players: _.fromPairs([...this.players.entries()]),
+            onlinePlayers: [...this.players.keys()].filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0),
             dealerSeat: this.dealerSeat,
             lastActive: this.lastActive,
             hand: this.hand?.toJSON(player)
@@ -178,6 +180,7 @@ export class Game {
     }
 
     markDirty() {
+        this.lastActive = moment()
         this.isDirty = true
     }
 
@@ -206,18 +209,20 @@ export enum GamePlayerStatus {
 }
 
 export class GamePlayer {
+    name: string
     status: GamePlayerStatus = GamePlayerStatus.ACTIVE
     stack: number = 0
     buyIn: number = 0
     buyOut: number = 0
 
     constructor(public id: string, public game: Game) {
-        
+        this.name = id
     }
 
     toJSON() {
         return {
             id: this.id,
+            name: this.name,
             status: this.status,
             stack: this.stack
         }
