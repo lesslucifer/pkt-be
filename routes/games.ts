@@ -10,12 +10,6 @@ import { ValidBody } from "../utils/decors";
 import { AppLogicError } from "../utils/hera";
 
 class GamesRouter extends ExpressRouter {
-    @GET({path: "/"})
-    @AuthServ.authPlayer()
-    async getAllGames(@PlayerId() playerId: string) {
-        return [...GameServ.games.values()]
-    }
-
     @POST({path: "/"})
     @AuthServ.authPlayer()
     async createNewGame(@PlayerId() playerId: string) {

@@ -22,7 +22,7 @@ export class AuthServ {
                 const gameId = req.header('x-game-id')
                 if (hera.isEmpty(gameId)) throw ExpressRouter.NEXT; // new AppLogicError(`Unauthorized, Invalid access token`, 403);
 
-                const game = GameServ.games.get(gameId)
+                const game = await GameServ.getGame(gameId)
                 if (!game) throw new AppLogicError(`Cannot find game ${gameId}`, 404)
             
                 req.session.game =  game
@@ -40,7 +40,7 @@ export class AuthServ {
                 const gameId = req.header('x-game-id')
                 if (hera.isEmpty(gameId)) throw ExpressRouter.NEXT; // new AppLogicError(`Unauthorized, Invalid access token`, 403);
                 
-                const game = GameServ.games.get(gameId)
+                const game = await GameServ.getGame(gameId)
                 if (!game) throw new AppLogicError(`Cannot find game ${gameId}`, 404)
 
                 const gp = game.players.get(playerId)

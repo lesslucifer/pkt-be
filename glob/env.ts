@@ -1,10 +1,25 @@
 import _ from 'lodash';
 import newAjv2 from '../utils/ajv2';
 import hera from '../utils/hera';
+import dotenv = require('dotenv')
+
+dotenv.config({path: 'process.env'})
 
 const ajv = newAjv2();
 
-export interface ENV_CONFIG {
+export interface ENV_DB_CONFIG {
+    MONGO_CONNECTION: string;
+    MONGO_DB: string;
+    MONGO_OPTIONS: any;
+}
+
+const ajvEnvDbConfig = {
+    '+@MONGO_CONNECTION': 'string',
+    '+@MONGO_DB': 'string',
+    'MONGO_OPTIONS': {}
+}
+
+export interface ENV_CONFIG extends ENV_DB_CONFIG {
     NAME: string;
     HTTP_PORT: number;
     LOG_LEVEL: string;
@@ -13,16 +28,19 @@ export interface ENV_CONFIG {
 const ajvEnvConfig = ajv({
     '+@NAME': 'string',
     '@HTTP_PORT': 'number',
-    '@LOG_LEVEL': 'string'
+    '@LOG_LEVEL': 'string',
+    ...ajvEnvDbConfig
 })
 
 const ENV_DEFAULT: Partial<ENV_CONFIG> = {
     NAME: 'PKT',
     HTTP_PORT: 3492,
-    LOG_LEVEL: 'debug'
+    LOG_LEVEL: 'debug',
+    MONGO_OPTIONS: {},
 }
 
 const envCustomParser = {
+    MONGO_OPTIONS: hera.toJSON,
     HTTP_PORT: hera.parseInt
 }
 

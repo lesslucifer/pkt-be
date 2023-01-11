@@ -30,6 +30,7 @@ export class Game {
     dealerSeat = 0
     isDirty = true
     lastActive: moment.Moment = moment()
+    lastSave: moment.Moment = moment(0)
 
     getReadyPlayers() {
         return this.seats.filter(pid => {
@@ -100,6 +101,8 @@ export class Game {
             .map(i => new HandPlayer(this.players.get(this.seats[i]), i))
         this.hand = hand
 
+        this.lastActive = moment()
+
         hand.start()
         this.markDirty()
     }
@@ -111,7 +114,7 @@ export class Game {
         noHandActions.forEach(action => this.performNoHandAction(action))
         // this.hand = null
         this.startNewHand()
-        this.markDirty()
+        this.markDirty() 
     }
 
     addNoHandAction(action: INoHandAction) {
@@ -159,9 +162,10 @@ export class Game {
             ownerId: this.ownerId,
             status: this.status,
             seats: this.seats,
-            players: _.fromPairs([...this.players.entries()]),
+            players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
-            lastActive: this.lastActive
+            lastActive: this.lastActive.valueOf(),
+            lastSave: this.lastSave.valueOf()
         }
     }
 
@@ -180,7 +184,6 @@ export class Game {
     }
 
     markDirty() {
-        this.lastActive = moment()
         this.isDirty = true
     }
 
@@ -197,7 +200,10 @@ export class Game {
     }
 
     connect(playerId: string, socketId: string) {
-        if (!this.players.has(playerId)) throw new AppLogicError(`Cannot connect to socketio, player not found`, 404)
+        if (!this.players.has(playerId)) {
+            this.players.set(playerId, new GamePlayer(playerId, this))
+        }
+
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
         this.markDirty()
     }

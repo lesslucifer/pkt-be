@@ -15,7 +15,12 @@ export default function terminate(server, options = { coredump: false, timeout: 
     }
     
     if (reason === 'exit') {
-      GameServ.save()
+      console.log('Crashed - start saving games...')
+      return GameServ.save().then(() => {
+        console.log('Crashed - games saved...')
+        server.close(exit)
+        setTimeout(exit, options.timeout).unref()
+      })
     }
 
     server.close(exit)

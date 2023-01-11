@@ -116,9 +116,10 @@ class GamesRouter extends ExpressRouter {
     }
 
     @POST({path: "/sockets/:socketId"})
-    @AuthServ.authGamePlayer()
-    async bindSocket(@Player() player: GamePlayer, @Params('socketId') socketId: string) {
-        player.game?.connect(player.id, socketId)
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async bindSocket(@PlayerId() playerId: string, @CurrentGame() game: Game, @Params('socketId') socketId: string) {
+        game?.connect(playerId, socketId)
         return HC.SUCCESS
     }
 }
