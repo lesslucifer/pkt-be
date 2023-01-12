@@ -66,7 +66,10 @@ export class GameService {
             const playingGames = await this.DB.find({ status: 'PLAYING' }).toArray()
             const games: Game[] = playingGames.map(js => this.gameFromJSON(js))
     
-            games.forEach(g => this.games.set(g.id, g))
+            games.forEach(g => {
+                g.status = GameStatus.STOPPED
+                this.games.set(g.id, g)
+            })
         }
         catch (err) {
             console.log(err)

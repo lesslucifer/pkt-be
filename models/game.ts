@@ -6,6 +6,7 @@ import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
 
 export enum GameStatus {
     STOPPED = 'STOPPED',
+    PAUSED = 'PAUSED',
     PLAYING = 'PLAYING',
 }
 
@@ -70,7 +71,7 @@ export class Game {
     }
 
     startNewHand() {
-        if (this.status !== GameStatus.PLAYING) throw new Error(`Cannot start new hand, invalid game state`)
+        if (this.status !== GameStatus.PLAYING) return
         if (this.hand && this.hand.status !== GameHandStatus.OVER) throw new Error(`Cannot start new hand, already having an incompleted game`)
 
         this.players.forEach(p => {
@@ -156,6 +157,10 @@ export class Game {
                 player.buyOut += player.stack
                 player.stack = 0
             }
+        }
+        else if (action.action === 'STOP_GAME') {
+            this.hand = null
+            this.status = GameStatus.STOPPED
         }
         this.markDirty()
     }

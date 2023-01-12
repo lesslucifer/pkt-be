@@ -1,7 +1,7 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import _ from "lodash";
 import HC from "../glob/hc";
-import { Game, GamePlayer } from "../models/game";
+import { Game, GamePlayer, GameStatus } from "../models/game";
 import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
@@ -77,9 +77,52 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGamePlayer()
     async startGame(@Player() gamePlayer: GamePlayer) {
         const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot start the game. Only owner can perform this action`, 403)
         game.start()
         game.markDirty()
 
+        return HC.SUCCESS
+    }
+
+    @PUT({path: "/status/stopped"})
+    @AuthServ.authGamePlayer()
+    async stopGame(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot stop the game. Only owner can perform this action`, 403)
+        if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot stop the game. The game is already stopped`, 403)
+        if (game.noHandActions.find(a => a.action === 'STOP_GAME')) throw new AppLogicError(`Cannot stop the game. Already have the same action`, 403)
+        
+        game.addNoHandAction({
+            action: 'STOP_GAME',
+            params: null
+        })
+
+        return HC.SUCCESS
+    }
+
+    @PUT({path: "/status/paused"})
+    @AuthServ.authGamePlayer()
+    async pauseGame(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot pause the game. Only owner can perform this action`, 403)
+        if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot pause the game. The game must be playing`, 403)
+        
+        game.status = GameStatus.PAUSED
+        game.markDirty(true, false)
+
+        return HC.SUCCESS
+    }
+
+    @PUT({path: "/status/resume"})
+    @AuthServ.authGamePlayer()
+    async resumeGame(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot resume the game. Only owner can perform this action`, 403)
+        if (game.status !== GameStatus.PAUSED) throw new AppLogicError(`Cannot resume the game. The game must be paused`, 403)
+        
+        game.status = GameStatus.PLAYING
+        game.markDirty(true, false)
+        
         return HC.SUCCESS
     }
 
@@ -115,7 +158,7 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGamePlayer()
     async showCards(@Player() player: GamePlayer, @Body() action: IPlayerAction) {
         const hand = player.game.hand
-        if (!hand || hand.round !== HandRound.DONE || hand.status != GameHandStatus.SHOWING_DOWN) {
+        if (!hand || hand.status != GameHandStatus.SHOWING_DOWN) {
             throw new AppLogicError(`Cannot show cards! Hand round and status mismatch`)
         }
     
