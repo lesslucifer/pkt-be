@@ -101,8 +101,6 @@ export class Game {
             .map(i => new HandPlayer(this.players.get(this.seats[i]), i))
         this.hand = hand
 
-        this.lastActive = moment()
-
         hand.start()
         this.markDirty()
     }
@@ -189,9 +187,11 @@ export class Game {
         }
     }
 
-    markDirty() {
-        this.isDirty = true
-        this.lastActive = moment()
+    markDirty(dirty = true, updateLastActive = true) {
+        this.isDirty = dirty
+        if (dirty && updateLastActive) {
+            this.lastActive = moment()
+        }
     }
 
     sendUpdateToClients() {
@@ -202,6 +202,7 @@ export class Game {
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
 
+            console.log(`Send update to player ${p.id}: (${sockets.length} connection)`)
             const data = this.toJSONWithHand(p)
             sockets.forEach(s => s.emit('update', data))
         })
@@ -213,7 +214,7 @@ export class Game {
         }
 
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
-        this.markDirty()
+        this.markDirty(true, false)
     }
 }
 

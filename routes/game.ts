@@ -1,4 +1,5 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
+import _ from "lodash";
 import HC from "../glob/hc";
 import { Game, GamePlayer } from "../models/game";
 import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
@@ -33,6 +34,18 @@ class GamesRouter extends ExpressRouter {
         })
 
         gamePlayer.game.markDirty()
+
+        return HC.SUCCESS
+    }
+
+    @PUT({path: "/seats/shuffled"})
+    @AuthServ.authGamePlayer()
+    async shuffleSeat(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot shuffle seats! Only owner can perform this action`, 403)
+        
+        game.seats = _.shuffle(game.seats)
+        game.markDirty()
 
         return HC.SUCCESS
     }

@@ -1,4 +1,4 @@
-import { Game, GamePlayer } from "../models/game";
+import { Game, GamePlayer, GameStatus } from "../models/game";
 import shortid from 'shortid';
 import fs = require('fs-extra')
 import moment from "moment";
@@ -39,8 +39,12 @@ export class GameService {
         return game
     }
 
+    async saveGamesIfNeeded(games: Game[]) {
+        await this.saveGames(games.filter(g => g && g.lastSave.isBefore(g.lastActive)))
+    }
+
     async save() {
-        await this.saveGames([...this.games.values()].filter(g => g && g.lastSave.isBefore(g.lastActive)))
+        this.saveGamesIfNeeded(Array.from(this.games.values()))
     }
 
     private async saveGames(games: Game[]) {
@@ -79,6 +83,33 @@ export class GameService {
                 console.log(`Save game error`, err)
             }
         }, 1000)
+
+        setInterval(() => {
+            console.log('Start prunning games...')
+            this.games.forEach(g => {
+                if (!g) return
+                try {
+                    if (g.status === GameStatus.PLAYING && moment().diff(g.lastActive, 'd') >= 3) {
+                        console.log('Game', g.id, 'is going to be pruned')
+                        g.hand = null
+                        g.status = GameStatus.STOPPED
+                        g.lastActive = moment()
+                    }
+                }
+                catch (err) {
+                    console.log(`Game prune ${g.id} got error`)
+                    console.log(err)
+                }
+            })
+        }, 6 * 3600 * 1000) // prunning - run every 6 hour
+
+        setInterval(async () => {
+            const removedGames = Array.from(this.games.values())
+                .filter(g => g.status === GameStatus.STOPPED && moment().diff(g.lastActive, 'h') >= 6)
+
+            await this.saveGamesIfNeeded(removedGames)
+            removedGames.forEach(g => this.games.delete(g.id))
+        }, 1800 * 1000) // clear cache - run every 30 minutes
 
         setInterval(() => {
             this.games.forEach(g => {
