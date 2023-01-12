@@ -185,11 +185,13 @@ export class Game {
 
     markDirty() {
         this.isDirty = true
+        this.lastActive = moment()
     }
 
     sendUpdateToClients() {
-        if (!this.isDirty) return
+        if (!this.isDirty && !this.hand?.isDirty) return
         this.isDirty = false
+        this.hand?.markDirty(false)
         this.players.forEach((p, pid) => {
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
@@ -230,7 +232,9 @@ export class GamePlayer {
             id: this.id,
             name: this.name,
             status: this.status,
-            stack: this.stack
+            stack: this.stack,
+            buyIn: this.buyIn,
+            buyOut: this.buyOut
         }
     }
 }

@@ -94,6 +94,7 @@ export class GameHand {
     pot = 0
     betting = 0
     minRaise = 0
+    isDirty = true
 
     constructor(public game: Game) {
         this.id = `${game.id}:${shortid.generate()}`
@@ -101,6 +102,10 @@ export class GameHand {
 
     get fullPot() {
         return this.pot + _.sumBy(this.players, p => p.betting)
+    }
+
+    markDirty(dirty = true) {
+        this.isDirty = dirty
     }
 
     start() {
@@ -120,7 +125,7 @@ export class GameHand {
             this.minRaise = 20
         }
 
-        this.game.markDirty()
+        this.markDirty()
     }
 
     deal() {
@@ -132,7 +137,7 @@ export class GameHand {
             p.cards = [this.deck.deal(), this.deck.deal()]
         })
 
-        this.game.markDirty()
+        this.markDirty()
     }
 
     bet(player: HandPlayer, amount: number) {
@@ -169,7 +174,7 @@ export class GameHand {
         this.betting = Math.max(this.betting, amount)
 
         player.betting = Math.min(amount, player.stack)
-        this.game.markDirty()
+        this.markDirty()
     }
 
     moveNext() {
@@ -181,7 +186,7 @@ export class GameHand {
         if (this.roundPlayers.length <= 0) {
             this.completeRound()
         }
-        this.game.markDirty()
+        this.markDirty()
     }
 
     completeRound() {
@@ -200,7 +205,7 @@ export class GameHand {
         }
 
         this.dealNextRound()
-        this.game.markDirty()
+        this.markDirty()
     }
 
     commitPot() {
@@ -210,7 +215,7 @@ export class GameHand {
             this.pot += betAmount
             p.betting = null
         })
-        this.game.markDirty()
+        this.markDirty()
     }
 
     dealNextRound() {
@@ -227,7 +232,7 @@ export class GameHand {
             this.deck.deal() // burn
             this.communityCards.push(this.deck.deal())
         }
-        this.game.markDirty()
+        this.markDirty()
     }
 
     completeHand() {
@@ -257,13 +262,13 @@ export class GameHand {
             this.closeHand()
         }, 5000)
         
-        this.game.markDirty()
+        this.markDirty()
     }
 
     closeHand() {
         this.status = GameHandStatus.OVER
         this.game.handOver()
-        this.game.markDirty()
+        this.markDirty()
     }
 
     distPotToWinners(winners: HandPlayer[], autoShowCard = true): GameHandWinner[] {
@@ -284,7 +289,7 @@ export class GameHand {
                 amount
             }
         })
-        this.game.markDirty()
+        this.markDirty()
     }
 
     checkTerminatedHand(): boolean {
@@ -315,7 +320,7 @@ export class GameHand {
             try {
                 await hera.sleep(1000)
                 this.completeRound()
-                this.game.markDirty()
+                this.markDirty()
             }
             catch (err) {
                 // TODO: Log error, auto play should not have any errors
@@ -349,7 +354,7 @@ export class GameHand {
             }, 500)
         }
 
-        this.game.markDirty()
+        this.markDirty()
     }
 
     toJSON(player?: GamePlayer) {
