@@ -91,6 +91,8 @@ export class GameHand {
     round: HandRound = HandRound.PRE_FLOP
     communityCards: Card[] = []
     winners: GameHandWinner[]
+    beginActionTime: number = null
+    timeOutAt: number = null
     pot = 0
     betting = 0
     minRaise = 0
@@ -108,6 +110,16 @@ export class GameHand {
         this.isDirty = dirty
     }
 
+    setupAutoActionTimes(timeOut = 15000) {
+        this.beginActionTime = Date.now()
+        this.timeOutAt = this.beginActionTime + timeOut // 10 secs timeout
+    }
+
+    clearAutoActionTimes() {
+        this.beginActionTime = null
+        this.timeOutAt = null
+    }
+
     start() {
         this.deal()
 
@@ -123,6 +135,7 @@ export class GameHand {
             this.round = HandRound.PRE_FLOP
             this.betting = 20
             this.minRaise = 20
+            this.setupAutoActionTimes()
         }
 
         this.markDirty()
@@ -182,7 +195,8 @@ export class GameHand {
         if (this.round === HandRound.DONE) throw new Error(`The hand is over`)
         if (!this.roundPlayers.length) throw new Error(`Invalid hand state. No current player??`)
 
-        this.roundPlayers.shift() // TODO
+        this.roundPlayers.shift() // TODO: performance
+        this.setupAutoActionTimes()
         if (this.roundPlayers.length <= 0) {
             this.completeRound()
         }
@@ -205,6 +219,7 @@ export class GameHand {
         }
 
         this.dealNextRound()
+        this.setupAutoActionTimes()
         this.markDirty()
     }
 
@@ -258,8 +273,15 @@ export class GameHand {
             this.status = GameHandStatus.SHOWING_DOWN
         }
 
+        this.clearAutoActionTimes()
         setTimeout(() => {
-            this.closeHand()
+            try {
+                this.closeHand()
+            }
+            catch (err) {
+                console.log(`Cannot close hand; Got error`)
+                console.log(err)
+            }
         }, 5000)
         
         this.markDirty()
@@ -267,6 +289,7 @@ export class GameHand {
 
     closeHand() {
         this.status = GameHandStatus.OVER
+        this.clearAutoActionTimes()
         this.game.handOver()
         this.markDirty()
     }
@@ -350,11 +373,40 @@ export class GameHand {
 
         if (!this.checkTerminatedHand()) {
             setTimeout(() => {
-                this.moveNext()
+                try {
+                    this.moveNext()
+                }
+                catch (err) {
+                    console.log(`Cannot close hand; Got error`)
+                    console.log(err)
+                }
             }, 500)
         }
 
         this.markDirty()
+    }
+
+    updateHandForAutoAction(time: number) {
+        if (this.timeOutAt <= 0 || time < this.timeOutAt) return
+
+        this.clearAutoActionTimes()
+        if (this.game.status !== GameStatus.PLAYING || this.status !== GameHandStatus.PLAYING || this.round === HandRound.DONE) return
+        const playerIndex = _.first(this.roundPlayers)
+        if (_.isNil(playerIndex) || playerIndex < 0 || playerIndex >= this.players.length) return
+        const player = this.players[playerIndex]
+        if (!player) return
+
+        if (player.betting >= this.betting) { // checkable
+            this.takeAction(player.player, {
+                action: ActionType.BET,
+                amount: player.betting ?? 0
+            })
+        }
+        else {
+            this.takeAction(player.player, {
+                action: ActionType.FOLD
+            })
+        }
     }
 
     toJSON(player?: GamePlayer) {
@@ -369,7 +421,10 @@ export class GameHand {
             fullPot: this.fullPot,
             betting: this.betting,
             minRaise: this.minRaise,
-            winners: this.winners
+            beginActionTime: this.beginActionTime,
+            currentTime: Date.now(),
+            timeOutAt: this.timeOutAt,
+            winners: this.winners,
         }
     }
 

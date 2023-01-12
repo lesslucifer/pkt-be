@@ -126,6 +126,21 @@ export class GameService {
                 }
             })
         }, 200)
+
+        setInterval(() => {
+            const time = Date.now()
+            this.games.forEach(g => {
+                if (!g.hand) return
+                try {
+                    g.hand.updateHandForAutoAction(time)
+                }
+                catch (err) {
+                    g.hand.clearAutoActionTimes()
+                    console.log(`Game ${g.id} update hand for auto action error`)
+                    console.log(err)
+                }
+            })
+        })
     }
 }
 
