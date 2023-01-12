@@ -139,6 +139,12 @@ export class Game {
             if (this.seats.includes(playerId)) throw new AppLogicError(`Player have seat already`)
             if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
 
+            const name = action.params?.name ?? gamePlayer.name
+            if (Array.from(this.players.values()).find(p => p.id !== playerId && p.name === name)) {
+                throw new AppLogicError(`Name ${name} is already taken`)
+            }
+
+            gamePlayer.name = name
             gamePlayer.buyOut += gamePlayer.stack
             gamePlayer.buyIn += buyIn
             gamePlayer.stack = buyIn

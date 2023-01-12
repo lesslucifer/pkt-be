@@ -39,18 +39,20 @@ class GamesRouter extends ExpressRouter {
 
     @PUT({path: "/seats/:seat"})
     @ValidBody({
-        '+@buyIn': 'integer'
+        '+@buyIn': 'integer',
+        '+@name': 'string'
     })
     @AuthServ.authGame()
     @AuthServ.authPlayer()
     async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
-    @IntParams('seat') seat: number, @Body('buyIn') buyIn: number) {
+    @IntParams('seat') seat: number, @Body('buyIn') buyIn: number, @Body('name') name: number) {
         game.addNoHandAction({
             action: 'TAKE_SEAT',
             params: {
                 playerId,
                 seat,
-                buyIn
+                buyIn,
+                name
             }
         })
 
