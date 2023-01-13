@@ -90,10 +90,11 @@ export class GameHand {
     status: GameHandStatus = GameHandStatus.READY
     round: HandRound = HandRound.PRE_FLOP
     communityCards: Card[] = []
-    winners: GameHandWinner[]
+    winners: _.Dictionary<number> = {}
     beginActionTime: number = null
     timeOutAt: number = null
-    pot = 0
+    comittedPot: number = 0
+    pot: _.Dictionary<number> = {}
     betting = 0
     minRaise = 0
     isDirty = true
@@ -103,14 +104,14 @@ export class GameHand {
     } 
 
     get fullPot() {
-        return this.pot + _.sumBy(this.players, p => p.betting)
+        return this.comittedPot + _.sumBy(this.players, p => p.betting)
     }
 
     markDirty(dirty = true) {
         this.isDirty = dirty
     }
 
-    setupAutoActionTimes(timeOut = 15000) {
+    setupAutoActionTimes(timeOut = 20000) {
         this.beginActionTime = Date.now()
         this.timeOutAt = this.beginActionTime + timeOut // 10 secs timeout
     }
@@ -228,7 +229,8 @@ export class GameHand {
         this.players.forEach(p => {
             const betAmount = Math.min(p.stack, p.betting)
             p.stack -= betAmount
-            this.pot += betAmount
+            this.pot[p.player.id] = (this.pot[p.player.id] ?? 0) + betAmount
+            this.comittedPot += betAmount
             p.betting = null
         })
         this.markDirty()
@@ -258,14 +260,62 @@ export class GameHand {
         const players = this.players.filter(p => p.status !== HandPlayerStatus.FOLDED)
         players.forEach(p => p.result = PokerHand.calcHand(p.cards, this.communityCards))
 
-        let winners = [players[0]]
-        for (let i = 1; i < players.length; ++i) {
-            const cmp = PokerHand.compare(players[i].result, winners[0].result)
-            if (cmp > 0) winners = [players[i]]
-            else if (cmp == 0) winners.push(players[i])
+        const findWinners = (players: HandPlayer[]) => {
+            if (players.length <= 1) return players
+
+            let winners = [players[0]]
+            for (let i = 1; i < players.length; ++i) {
+                const cmp = PokerHand.compare(players[i].result, winners[0].result)
+                if (cmp > 0) winners = [players[i]]
+                else if (cmp == 0) winners.push(players[i])
+            }
+            return winners
         }
 
-        this.distPotToWinners(winners)
+        const takePot = (amount) => {
+            let taken = 0
+            for (const [pid, committed] of _.entries(this.pot)) {
+                taken += Math.min(committed, amount)
+                this.pot[pid] = Math.max(0, committed - amount)
+            }
+            return taken
+        }
+
+        const distPotToWinners = (pot: number, players: HandPlayer[]) => {
+            if (players.length <= 0) return // TODO: Log error here, noway to have no winner
+
+            const winPot = pot / players.length
+            const remain = winPot % players.length
+
+            players.forEach((p, i) => this.winners[p.player.id] = (this.winners[p.player.id] ?? 0) + winPot + (i < remain ? 1 : 0))
+        }
+
+        let remainingPlayers = players
+        while (remainingPlayers.length > 0) {
+            const winners = findWinners(remainingPlayers)
+            const leastCommitted = _.min(winners.map(w => this.pot[w.player.id]))
+            const takenPot = takePot(leastCommitted)
+            distPotToWinners(takenPot, winners)
+
+            remainingPlayers = remainingPlayers.filter(p => this.pot[p.player.id] > 0)
+        }
+
+        const handPlayers = _.keyBy(this.players, hp => hp.player.id)
+
+        _.entries(this.winners).forEach(([pid, winAmount]) => {
+            if (winAmount <= 0) return
+            handPlayers[pid].stack += winAmount
+            handPlayers[pid].showCard = true
+        })
+
+        // This case shouldn't be existed, just a safe-check. All remaining committed post shouuld return to the player
+        _.entries(this.pot).forEach(([pid, amount]) => {
+            if (amount > 0) {
+                console.log(`Complete hand error, there are pot remained`, pid, amount)
+                handPlayers[pid].stack += amount
+            }
+        })
+
         this.moveToShowDown()
     }
 
@@ -283,7 +333,7 @@ export class GameHand {
                 console.log(`Cannot close hand; Got error`)
                 console.log(err)
             }
-        }, 5000)
+        }, 6000)
         
         this.markDirty()
     }
@@ -295,26 +345,26 @@ export class GameHand {
         this.markDirty()
     }
 
-    distPotToWinners(winners: HandPlayer[], autoShowCard = true): GameHandWinner[] {
-        if (winners.length <= 0) return // TODO: Log error here, noway to have no winner
+    // distPotToWinners(winners: HandPlayer[], autoShowCard = true): GameHandWinner[] {
+    //     if (winners.length <= 0) return // TODO: Log error here, noway to have no winner
 
-        // TODO: All in case
-        const winPot = this.pot / winners.length
-        const remain = winPot % winners.length
+    //     // TODO: All in case
+    //     const winPot = this.pot / winners.length
+    //     const remain = winPot % winners.length
 
-        this.winners = winners.map((w, i) => {
-            const amount = winPot + (i < remain ? 1 : 0)
-            w.stack += amount
-            if (autoShowCard) {
-                w.showCard = true
-            }
-            return {
-                id: w.player.id,
-                amount
-            }
-        })
-        this.markDirty()
-    }
+    //     this.winners = winners.map((w, i) => {
+    //         const amount = winPot + (i < remain ? 1 : 0)
+    //         w.stack += amount
+    //         if (autoShowCard) {
+    //             w.showCard = true
+    //         }
+    //         return {
+    //             id: w.player.id,
+    //             amount
+    //         }
+    //     })
+    //     this.markDirty()
+    // }
 
     checkTerminatedHand(): boolean {
         const playingPlayers = this.players.filter(p => p.status === HandPlayerStatus.PLAYING)
@@ -326,10 +376,12 @@ export class GameHand {
             return true
         }
 
-        if (alledInPlayers.length + playingPlayers.length === 1) {
+        if (alledInPlayers.length + playingPlayers.length === 1) { // all folded, terminate hand
             this.commitPot()
-            const winners = [...playingPlayers, ...alledInPlayers]
-            this.distPotToWinners(winners, false)
+            const winner = _.first(alledInPlayers) ?? _.first(playingPlayers)
+            winner.stack += this.comittedPot
+            _.keys(this.pot).forEach(pid => this.pot[pid] = 0)
+            this.winners = {[winner.player.id]: this.comittedPot}
             this.moveToShowDown()
             return true
         }
@@ -420,7 +472,7 @@ export class GameHand {
             round: this.round,
             communityCards: this.communityCards,
             roundPlayers: this.roundPlayers.map(i => this.players[i].player.id),
-            pot: this.pot,
+            comittedPot: this.comittedPot,
             fullPot: this.fullPot,
             betting: this.betting,
             minRaise: this.minRaise,
