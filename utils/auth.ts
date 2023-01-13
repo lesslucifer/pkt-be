@@ -5,14 +5,10 @@ export interface IAuth {
     expires_in: number;
     refresh_token: string;
     token_type: string;
-    scope: string;
 }
 
 export interface IAuthUser {
     id: number | string;
-    scope: string;
-    fullName?: string;
-    email?: string;
 }
 
 export interface IAuthenticator {
@@ -51,7 +47,6 @@ export class JWTAuth implements IAuthenticator {
             expires_in: accessTokenExpiresIn,
             refresh_token: refreshToken,
             token_type: "bearer",
-            scope: user.scope,
         };
     }
 
@@ -59,7 +54,6 @@ export class JWTAuth implements IAuthenticator {
         const refreshToken = jwt.sign(
             <any>{
                 id: user.id,
-                scope: user.scope,
                 type: "REFRESH",
             },
             this.secrect,
@@ -94,6 +88,11 @@ export class JWTAuth implements IAuthenticator {
     }
 
     async getUser(accessToken: string): Promise<IAuthUser> {
-        throw new Error(`Invalid access token`);
+        if (accessToken.startsWith('Bearer ')) return await this.getUser(accessToken.substring('Bearer '.length))
+        const data: any = jwt.verify(accessToken, this.secrect)
+        if (data?.type !== 'ACCESS' || !data?.id) throw new Error(`Invalid access token`)
+        return {
+            id: data.id
+        }
     }
 }

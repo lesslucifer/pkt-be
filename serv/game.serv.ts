@@ -131,7 +131,7 @@ export class GameService {
         setInterval(() => {
             const time = Date.now()
             this.games.forEach(g => {
-                if (!g.hand) return
+                if (!g?.hand) return
                 try {
                     g.hand.updateHandForAutoAction(time)
                 }

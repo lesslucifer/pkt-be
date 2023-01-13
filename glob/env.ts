@@ -23,10 +23,12 @@ export interface ENV_CONFIG extends ENV_DB_CONFIG {
     NAME: string;
     HTTP_PORT: number;
     LOG_LEVEL: string;
+    JWT_AUTH: string
 }
 
 const ajvEnvConfig = ajv({
     '+@NAME': 'string',
+    '+@JWT_AUTH': 'string',
     '@HTTP_PORT': 'number',
     '@LOG_LEVEL': 'string',
     ...ajvEnvDbConfig

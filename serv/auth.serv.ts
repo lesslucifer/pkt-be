@@ -1,16 +1,23 @@
 import express = require('express');
 import { addMiddlewareDecor, ExpressRouter } from "express-router-ts";
+import ENV from '../glob/env';
+import { JWTAuth } from '../utils/auth';
 import hera, { AppLogicError } from '../utils/hera';
 import GameServ from './game.serv';
 
 export class AuthServ {
+    static authenticator = new JWTAuth(ENV.JWT_AUTH, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
+
     static authPlayer() {
         return addMiddlewareDecor(async (req: express.Request) => {
             if (!req.session.playerId) {
-                const playerId = req.header('x-player-id');
-                if (hera.isEmpty(playerId)) throw ExpressRouter.NEXT; // new AppLogicError(`Unauthorized, Invalid access token`, 403);
+                const token = req.header('Authorization');
+                if (!token) throw ExpressRouter.NEXT;
 
-                req.session.playerId =  playerId
+                const user = await this.authenticator.getUser(token)
+                if (hera.isEmpty(user?.id)) throw ExpressRouter.NEXT;
+
+                req.session.playerId =  user.id as string
             }
         });
 
@@ -34,8 +41,11 @@ export class AuthServ {
     static authGamePlayer() {
         return addMiddlewareDecor(async (req: express.Request) => {
             if (!req.session.playerId) {
-                const playerId = req.header('x-player-id');
-                if (hera.isEmpty(playerId)) throw ExpressRouter.NEXT; // new AppLogicError(`Unauthorized, Invalid access token`, 403);
+                const token = req.header('Authorization');
+                if (!token) throw ExpressRouter.NEXT;
+
+                const user = await this.authenticator.getUser(token)
+                if (hera.isEmpty(user?.id)) throw ExpressRouter.NEXT;
 
                 const gameId = req.header('x-game-id')
                 if (hera.isEmpty(gameId)) throw ExpressRouter.NEXT; // new AppLogicError(`Unauthorized, Invalid access token`, 403);
@@ -43,10 +53,10 @@ export class AuthServ {
                 const game = await GameServ.getGame(gameId)
                 if (!game) throw new AppLogicError(`Cannot find game ${gameId}`, 404)
 
-                const gp = game.players.get(playerId)
+                const gp = game.players.get(user.id as string)
                 if (!gp) throw new AppLogicError(`User is not in the game`, 400)
 
-                req.session.playerId =  playerId
+                req.session.playerId =  user.id as string
                 req.session.game = game
                 req.session.gamePlayer = gp
             }

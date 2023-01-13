@@ -6,7 +6,7 @@ import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
 import { ValidBody } from "../utils/decors";
-import { AppLogicError } from "../utils/hera";
+import hera, { AppLogicError } from "../utils/hera";
 
 class GamesRouter extends ExpressRouter {
     @GET({path: "/"})
@@ -34,7 +34,7 @@ class GamesRouter extends ExpressRouter {
 
     @PUT({path: "/settings"})
     @ValidBody({
-        '+@actionTime': 'integer|>=10000',
+        '+@actionTime': 'integer|>=5000',
         '+@smallBlind': 'integer|>=1',
         '+@bigBlind': 'integer|>=1',
         '+@gameSpeed': 'integer|>=100',

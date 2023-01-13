@@ -156,7 +156,8 @@ export class Game {
         })
 
         const readyPlayers = this.getReadyPlayers()
-        if (readyPlayers.length < 2) {
+        const onlinePlayers = readyPlayers.filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0)
+        if (readyPlayers.length < 2 || !onlinePlayers.length) {
             this.status = GameStatus.STOPPED
             this.hand = null
             this.markDirty()
