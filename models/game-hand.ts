@@ -156,6 +156,7 @@ export class GameHand {
     bet(player: HandPlayer, amount: number) {
         if (this.status !== GameHandStatus.PLAYING) throw new Error(`The hand is not playing`)
         if (this.round === HandRound.DONE) throw new Error(`The hand is over`)
+        if (player.status !== HandPlayerStatus.PLAYING) throw new Error(`The player is not playing`)
         
         const index = this.roundPlayers[0]
         if (!this.roundPlayers.length || this.players[index] !== player) throw new Error(`Invalid betting player`)
@@ -269,7 +270,7 @@ export class GameHand {
     }
 
     moveToShowDown() {
-        if (this.status === GameHandStatus.PLAYING) {
+        if (this.status === GameHandStatus.PLAYING || this.status === GameHandStatus.AUTO) {
             this.status = GameHandStatus.SHOWING_DOWN
         }
 
@@ -357,15 +358,17 @@ export class GameHand {
         if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot take action! Game is not playing`)
         if (this.status !== GameHandStatus.PLAYING) throw new AppLogicError(`Hand is not playing`)
         if (!this.roundPlayers.length || this.players[this.roundPlayers[0]].player.id !== player.id) throw new Error(`Not current player`)
-        
+        const hp = this.players.find(p => p.player.id === player.id)
+        if (!hp || hp.status !== HandPlayerStatus.PLAYING) throw new AppLogicError(`Cannot take action! Player is not playing`)
+
         if (action.action === ActionType.BET) {
             if (_.isNil(action.amount)) throw new AppLogicError(`Must have bet amount`)
-            const hp = this.players.find(p => p.player.id === player.id)
             this.bet(hp, action.amount)
+            this.clearAutoActionTimes()
         }
         else if (action.action === ActionType.FOLD) {
-            const hp = this.players.find(p => p.player.id === player.id)
             hp.status = HandPlayerStatus.FOLDED
+            this.clearAutoActionTimes()
         }
         else if (action.action === ActionType.TIME) {
             // TODO: add extra time

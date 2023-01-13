@@ -207,7 +207,6 @@ export class Game {
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
 
-            console.log(`Send update to player ${p.id}: (${sockets.length} connection)`)
             const data = this.toJSONWithHand(p)
             sockets.forEach(s => s.emit('update', data))
         })
@@ -219,6 +218,7 @@ export class Game {
         }
 
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
+        RealtimeServ.bind(this.id, socketId)
         this.markDirty(true, false)
     }
 }

@@ -8,6 +8,9 @@ export class RealtimeService {
     io: Server
     sockets = new Map<string, SocketIOConnection>()
     binding = new Map<string, Set<string>>()
+    revBinding = new Map<string, Set<string>>()
+
+    onSocketDisconnected?: (socketId: string, bindingIds: Set<string>) => void
 
     init(server: http.Server) {
         this.io = new Server(server, {
@@ -25,8 +28,23 @@ export class RealtimeService {
         this.sockets.set(socket.id, socket)
 
         socket.on('disconnect', (reason) => {
-            this.sockets.delete(socket.id)
+            this.tearDownSocket(socket.id)
         })
+    }
+
+    private tearDownSocket(socketId: string) {
+        const bindings = this.revBinding.get(socketId)
+        this.revBinding.delete(socketId)
+        this.sockets.delete(socketId)
+        bindings?.forEach(id => this.binding.get(id)?.delete(socketId))
+
+        try {
+            this.onSocketDisconnected?.(socketId, bindings)
+        }
+        catch (err) {
+            console.log(`onSocketDisconnected: error`)
+            console.log(err)
+        }
     }
 
     bind(id: string, socketId: string) {
@@ -34,13 +52,18 @@ export class RealtimeService {
             this.binding.set(id, new Set())
         }
         this.binding.get(id).add(socketId)
+        
+        if (!this.revBinding.has(socketId)) {
+            this.revBinding.set(socketId, new Set())
+        }
+        this.revBinding.get(socketId).add(id)
     }
 
     getSocket(socketId: string) {
         if (!socketId) return null
         const socket = this.sockets.get(socketId)
         if (!socket || socket.disconnected) {
-            this.sockets.delete(socketId)
+            this.tearDownSocket(socket.id)
             return null
         }
         return socket

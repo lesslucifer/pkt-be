@@ -4,6 +4,7 @@ import fs = require('fs-extra')
 import moment from "moment";
 import _ from "lodash";
 import CONN from "../glob/conn";
+import RealtimeServ from "./realtime.serv";
 
 export class GameService {
     get DB() {
@@ -140,7 +141,12 @@ export class GameService {
                     console.log(err)
                 }
             })
-        })
+        }, 200)
+
+        RealtimeServ.onSocketDisconnected = (socketId, bindings) => {
+            if (!bindings) return
+            bindings.forEach(id => this.games.get(id)?.markDirty(true, false))
+        }
     }
 }
 
