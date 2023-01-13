@@ -111,9 +111,9 @@ export class GameHand {
         this.isDirty = dirty
     }
 
-    setupAutoActionTimes(timeOut = 20000) {
+    setupAutoActionTimes() {
         this.beginActionTime = Date.now()
-        this.timeOutAt = this.beginActionTime + timeOut // 10 secs timeout
+        this.timeOutAt = this.beginActionTime + this.game.settings.actionTime
     }
 
     clearAutoActionTimes() {
@@ -127,15 +127,15 @@ export class GameHand {
         this.status = GameHandStatus.PLAYING
 
         this.roundPlayers = [0]
-        this.bet(this.players[0], 10)
+        this.bet(this.players[0], this.game.settings.smallBlind)
         this.roundPlayers = [1]
-        this.bet(this.players[1], 20)
+        this.bet(this.players[1], this.game.settings.bigBlind)
 
         if (!this.checkTerminatedHand()) {
             this.roundPlayers = hera.rotate(_.range(this.players.length), 2)
             this.round = HandRound.PRE_FLOP
-            this.betting = 20
-            this.minRaise = 20
+            this.betting = this.game.settings.bigBlind
+            this.minRaise = this.game.settings.bigBlind
             this.setupAutoActionTimes()
         }
 
@@ -213,7 +213,7 @@ export class GameHand {
 
         this.round = GameHand.nextRound(this.round)
         this.betting = 0
-        this.minRaise = 20
+        this.minRaise = this.game.settings.bigBlind
         this.roundPlayers = _.range(this.players.length).filter(i => this.players[i].status === HandPlayerStatus.PLAYING)
         if (this.round === HandRound.DONE) {
             this.completeHand()
@@ -320,6 +320,9 @@ export class GameHand {
     }
 
     moveToShowDown() {
+        // transfer to game player stack when entering showdown
+        this.players.forEach(hp => hp.player.stack = hp.stack)
+
         if (this.status === GameHandStatus.PLAYING || this.status === GameHandStatus.AUTO) {
             this.status = GameHandStatus.SHOWING_DOWN
         }
@@ -333,7 +336,7 @@ export class GameHand {
                 console.log(`Cannot close hand; Got error`)
                 console.log(err)
             }
-        }, 6000)
+        }, this.game.settings.showDownTime)
         
         this.markDirty()
     }
@@ -394,7 +397,7 @@ export class GameHand {
         this.players.forEach(p => p.showCard = p.showCard || p.status === HandPlayerStatus.ALL_IN)
         while (this.round !== HandRound.DONE) {
             try {
-                await hera.sleep(1000)
+                await hera.sleep(this.game.settings.gameSpeed * 4)
                 this.completeRound()
                 this.markDirty()
             }
@@ -435,7 +438,7 @@ export class GameHand {
                     console.log(`Cannot close hand; Got error`)
                     console.log(err)
                 }
-            }, 500)
+            }, this.game.settings.gameSpeed)
         }
 
         this.markDirty()

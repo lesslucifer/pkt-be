@@ -1,7 +1,7 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import _ from "lodash";
 import HC from "../glob/hc";
-import { Game, GamePlayer, GameStatus } from "../models/game";
+import { Game, GamePlayer, GameSettings, GameStatus } from "../models/game";
 import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
@@ -16,26 +16,89 @@ class GamesRouter extends ExpressRouter {
         return game.toJSONWithHand(game.players.get(playerId))
     }
 
-    @PUT({path: "/players/me"})
-    @AuthServ.authPlayer()
-    @AuthServ.authGame()
-    async joinGame(@CurrentGame() game: Game, @Player() playerId: string) {
-        if (game.players.has(playerId)) throw new AppLogicError(`Player already joined the game`)
-        game.players.set(playerId, new GamePlayer(playerId, game))
+    @PUT({path: "/ownerId"})
+    @ValidBody({
+        '+@newOwner': 'string'
+    })
+    @AuthServ.authGamePlayer()
+    async transferGameOwnership(@Player() gamePlayer: GamePlayer, @Body('newOwner') newOwnerId: string) {
+        const game = gamePlayer.game
+        if (gamePlayer.id !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
+        if (!game.players.get(newOwnerId)) throw new AppLogicError(`Cannot transfer ownership. Player not found`, 403)
+
+        game.ownerId = newOwnerId
+        game.markDirty()
+
+        return HC.SUCCESS
+    }
+
+    @PUT({path: "/settings"})
+    @ValidBody({
+        '+@actionTime': 'integer|>=10000',
+        '+@smallBlind': 'integer|>=1',
+        '+@bigBlind': 'integer|>=1',
+        '+@gameSpeed': 'integer|>=100',
+        '+@showDownTime': 'integer|>=0',
+        '++': false
+    })
+    @AuthServ.authGamePlayer()
+    async updateSettings(@Player() gamePlayer: GamePlayer, @Body() newSettings: GameSettings) {
+        const game = gamePlayer.game
+        if (gamePlayer.id !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
+
+        if (newSettings.bigBlind <= newSettings.smallBlind) throw new AppLogicError(`Big blind must be greater than small blind`, 400)
+        
+        if (!game.hand) {
+            game.settings = newSettings
+            game.markDirty()
+        }
+        else {
+            game.requests.settings = newSettings
+            game.markDirty(true, false)
+        }
+        
         return HC.SUCCESS
     }
 
     @PUT({path: "/seats/leave"})
     @AuthServ.authGamePlayer()
     async leaveSeat(@Player() gamePlayer: GamePlayer) {
-        gamePlayer.game.addNoHandAction({
-            action: 'LEAVE_SEAT',
-            params: { playerId: gamePlayer.id }
-        })
+        const game = gamePlayer.game
+        const mySeat = game.seats.indexOf(gamePlayer.id)
+        if (mySeat < 0) throw new AppLogicError(`Cannot leave seat. You are not having a seat`)
 
-        gamePlayer.game.markDirty()
+        game.requestLeaveSeat(gamePlayer)
+
+        return game.toJSONWithHand(gamePlayer)
+    }
+
+    @PUT({path: `/players/:playerId/leave`})
+    @AuthServ.authGamePlayer()
+    async kickPlayer(@Player() gamePlayer: GamePlayer, @Params('playerId') playerId: string) {
+        const game = gamePlayer.game
+        if (gamePlayer.id !== game.ownerId) throw new AppLogicError(`Cannot kick player. Owner action`, 403)
+
+        const seat = game.seats.indexOf(playerId)
+        if (seat < 0) throw new AppLogicError(`Cannot leave seat. You are not having a seat`)
+
+        game.requestLeaveSeat(game.players.get(playerId))
 
         return HC.SUCCESS
+    }
+
+    @PUT({path: "/seats/unleave"})
+    @AuthServ.authGamePlayer()
+    async unLeaveSeat(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        const mySeat = game.seats.indexOf(gamePlayer.id)
+        if (mySeat < 0) throw new AppLogicError(`Cannot unleave seat. You are not having a seat`)
+        
+        const idx = game.requests.seatOut.indexOf(mySeat)
+        if (idx < 0) throw new AppLogicError(`Cannot unleave seat. You haven't request to leave`)
+
+        game.requests.seatOut.splice(idx, 1)
+
+        return game.toJSONWithHand(gamePlayer)
     }
 
     @PUT({path: "/seats/shuffled"})
@@ -47,7 +110,7 @@ class GamesRouter extends ExpressRouter {
         game.seats = _.shuffle(game.seats)
         game.markDirty()
 
-        return HC.SUCCESS
+        return game.toJSONWithHand(gamePlayer)
     }
 
     @PUT({path: "/seats/:seat"})
@@ -58,19 +121,9 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGame()
     @AuthServ.authPlayer()
     async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
-    @IntParams('seat') seat: number, @Body('buyIn') buyIn: number, @Body('name') name: number) {
-        game.addNoHandAction({
-            action: 'TAKE_SEAT',
-            params: {
-                playerId,
-                seat,
-                buyIn,
-                name
-            }
-        })
-
-        game.markDirty()
-        return HC.SUCCESS
+    @IntParams('seat') seat: number, @Body('buyIn') buyIn: number, @Body('name') name: string) {
+        game.requestSeat(playerId, seat, buyIn, name)
+        return game.toJSONWithHand(game.players.get(playerId))
     }
 
     @PUT({path: "/status/playing"})
@@ -89,15 +142,24 @@ class GamesRouter extends ExpressRouter {
     async stopGame(@Player() gamePlayer: GamePlayer) {
         const game = gamePlayer.game
         if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot stop the game. Only owner can perform this action`, 403)
-        if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot stop the game. The game is already stopped`, 403)
-        if (game.noHandActions.find(a => a.action === 'STOP_GAME')) throw new AppLogicError(`Cannot stop the game. Already have the same action`, 403)
-        
-        game.addNoHandAction({
-            action: 'STOP_GAME',
-            params: null
-        })
+        if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot stop the game. The game is already stopped`)
+        game.requests.stopGame = true
+        game.markDirty(true, false)
 
-        return HC.SUCCESS
+        return game.toJSONWithHand(gamePlayer)
+    }
+
+    @PUT({path: "/status/unstopped"})
+    @AuthServ.authGamePlayer()
+    async unStopGame(@Player() gamePlayer: GamePlayer) {
+        const game = gamePlayer.game
+        if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot unstop the game. Only owner can perform this action`, 403)
+        if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot unstop the game. The game is already stopped`)
+        if (!game.requests.stopGame) throw new AppLogicError(`Cannot unstop the game. The game is not being requested to stop`)
+        game.requests.stopGame = false
+        game.markDirty(true, false)
+
+        return game.toJSONWithHand(gamePlayer)
     }
 
     @PUT({path: "/status/paused"})

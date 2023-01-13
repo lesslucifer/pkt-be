@@ -1,5 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
+import HC from "../glob/hc";
 import RealtimeServ from "../serv/realtime.serv";
 import { AppLogicError } from "../utils/hera";
 import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
@@ -10,9 +11,19 @@ export enum GameStatus {
     PLAYING = 'PLAYING',
 }
 
-export interface INoHandAction {
-    action: string
-    params: _.Dictionary<any>
+export interface GameSettings {
+    smallBlind: number
+    bigBlind: number
+    showDownTime: number
+    actionTime: number
+    gameSpeed: number
+}
+
+export interface GameRequests {
+    seatIn: _.Dictionary<number>
+    seatOut: number[]
+    stopGame: boolean,
+    settings: GameSettings
 }
 
 export class Game {
@@ -26,9 +37,24 @@ export class Game {
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
     seats: string[] = Array(9).fill(null)
-    noHandActions: INoHandAction[] = []
     hand?: GameHand = null
     dealerSeat = 0
+
+    settings: GameSettings = {
+        actionTime: 20000,
+        bigBlind: 20,
+        smallBlind: 10,
+        gameSpeed: 500,
+        showDownTime: 6000
+    }
+
+    requests: GameRequests = {
+        seatIn: {},
+        seatOut: [],
+        stopGame: false,
+        settings: null
+    }
+
     isDirty = true
     lastActive: moment.Moment = moment()
     lastSave: moment.Moment = moment(0)
@@ -45,20 +71,66 @@ export class Game {
         return this.players.get(this.seats[seat])
     }
 
-    join(player: GamePlayer) {
-        player.status = GamePlayerStatus.ACTIVE
-        this.players.set(player.id, player)
+    requestSeat(playerId: string, seat: number, buyIn: number, name: string) {
+        if (seat < 0 || seat >= 9) throw new Error(`Invalid seat index`)
+        if (this.seats[seat]) throw new Error(`This seat is taken already`)
+        if (this.requestSeat[playerId]) throw new Error(`Player has requested a seat`)
+        if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
+        if (!name) throw new AppLogicError(`Name cannot be empty`)
+        if (Array.from(this.players.values()).find(p => p.id !== playerId && p.name === name)) {
+            throw new AppLogicError(`Name ${name} is already taken`)
+        }
+
+        if (!this.players.has(playerId)) {
+            this.players.set(playerId, new GamePlayer(playerId, this))
+        }
+
+        const p = this.players.get(playerId)
+        p.name = name
+        p.buyOut += p.stack
+        p.buyIn += buyIn
+        p.stack = buyIn
+
+        if (this.hand) {
+            this.requests.seatIn[playerId] = seat
+        }
+        else {
+            this.seats[seat] = p.id
+        }
+
         this.markDirty()
     }
+    
+    requestLeaveSeat(player: GamePlayer) {
+        if (this.requests.seatIn[player.id]) {
+            delete this.requests.seatIn[player.id]
+            this.markDirty(true, false)
+            return
+        }
 
-    takeSeat(id: string, seatIndex: number) {
-        if (seatIndex < 0 || seatIndex >= 9) throw new Error(`Invalid seat index`)
-        if (this.seats[seatIndex]) throw new Error(`This seat is taken already`)
-        const p = this.players.get(id)
-        if (!p) throw new Error(`Cannot find play with id ${id}`)
-        if (p.stack <= 0) throw new Error(`Cannot take seat with empty stack`)
-        this.seats[seatIndex] = p.id
-        this.markDirty()
+        const seat = this.seats.indexOf(player.id)
+        if (seat < 0) throw new Error(`Cannot request leave seat! You are not having a seat`)
+        if (this.requests.seatOut.includes(seat)) throw new Error(`Cannot request leave seat! Requested`)
+
+        if (!this.hand) {
+            this.cleanUpAndLeaveSeat(seat)
+            this.markDirty()
+        }
+        else {
+            this.requests.seatOut.push(seat)
+            this.markDirty(true, false)
+        }
+    }
+
+    cleanUpAndLeaveSeat(seat: number) {
+        const pid = this.seats[seat]
+        if (!pid) return
+        const player = this.players.get(pid)
+        if (player) {
+            player.buyOut += player.stack
+            player.stack = 0
+        }
+        this.seats[seat] = null
     }
 
     start() {
@@ -107,61 +179,33 @@ export class Game {
     }
 
     handOver() {
-        this.hand.players.forEach(hp => hp.player.stack = hp.stack)
-        const noHandActions = this.noHandActions
-        this.noHandActions = []
-        noHandActions.forEach(action => this.performNoHandAction(action))
-        // this.hand = null
+        this.performNoHandActions()
         this.startNewHand()
         this.markDirty() 
     }
 
-    addNoHandAction(action: INoHandAction) {
-        if (!this.hand) {
-            this.performNoHandAction(action)
-        }
-        else {
-            this.noHandActions.push(action)
-        }
-    }
-
-    performNoHandAction(action: INoHandAction) {
-        if (action.action === 'TAKE_SEAT') {
-            const { playerId, seat, buyIn } = action.params
-
+    performNoHandActions() {
+        Object.entries(this.requests.seatIn).forEach(([pid, seat]) => {
             if (this.seats[seat]) throw new AppLogicError(`The seat is already taken`)
-            if (!this.players.has(playerId)) {
-                this.players.set(playerId, new GamePlayer(playerId, this))
-            }
+            if (this.seats.includes(pid)) throw new AppLogicError(`Player have seat already`)
+            this.seats[seat] = pid
+        })
+        this.requests.seatIn = {}
 
-            const gamePlayer = this.players.get(playerId)
-            if (this.seats.includes(playerId)) throw new AppLogicError(`Player have seat already`)
-            if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
+        this.requests.seatOut.forEach((s) => this.cleanUpAndLeaveSeat(s))
+        this.requests.seatOut = []
 
-            const name = action.params?.name ?? gamePlayer.name
-            if (Array.from(this.players.values()).find(p => p.id !== playerId && p.name === name)) {
-                throw new AppLogicError(`Name ${name} is already taken`)
-            }
-
-            gamePlayer.name = name
-            gamePlayer.buyOut += gamePlayer.stack
-            gamePlayer.buyIn += buyIn
-            gamePlayer.stack = buyIn
-            this.seats[seat] = gamePlayer.id
-        }
-        else if (action.action === 'LEAVE_SEAT') {
-            const idx = this.seats.findIndex(s => s === action.params.playerId)
-            if (idx >= 0) this.seats[idx] = null
-            const player = this.players.get(action.params.playerId)
-            if (player) {
-                player.buyOut += player.stack
-                player.stack = 0
-            }
-        }
-        else if (action.action === 'STOP_GAME') {
+        if (this.requests.stopGame) {
+            this.requests.stopGame = false
             this.hand = null
             this.status = GameStatus.STOPPED
         }
+
+        if (this.requests.settings) {
+            this.settings = this.requests.settings
+            this.requests.settings = null
+        }
+
         this.markDirty()
     }
 
@@ -173,6 +217,7 @@ export class Game {
             seats: this.seats,
             players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
+            settings: this.settings,
             lastActive: this.lastActive.valueOf(),
             lastSave: this.lastSave.valueOf()
         }
@@ -188,6 +233,8 @@ export class Game {
             onlinePlayers: [...this.players.keys()].filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0),
             dealerSeat: this.dealerSeat,
             lastActive: this.lastActive,
+            settings: this.settings,
+            requests: this.requests,
             hand: this.hand?.toJSON(player)
         }
     }
