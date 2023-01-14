@@ -19,11 +19,17 @@ export interface GameSettings {
     gameSpeed: number
 }
 
+export interface IStackRequest {
+    type: 'ADD' | 'SET'
+    amount: number
+}
+
 export interface GameRequests {
     seatIn: _.Dictionary<number>
     seatOut: number[]
     stopGame: boolean,
     settings: GameSettings
+    stack: _.Dictionary<IStackRequest>
 }
 
 export class Game {
@@ -53,7 +59,8 @@ export class Game {
         seatIn: {},
         seatOut: [],
         stopGame: false,
-        settings: null
+        settings: null,
+        stack: {}
     }
 
     isDirty = true
@@ -126,6 +133,40 @@ export class Game {
             this.requests.seatOut.push(seat)
             this.markDirty(true, false)
         }
+    }
+
+    requestStackUpdate(playerId: string, req: IStackRequest) {
+        if (!this.players.has(playerId)) throw new Error(`Cannot request udpate stack! Player not found`)
+        if (req.type === "SET" && req.amount <= 0) throw new Error(`Cannot request udpate stack! Set stack amount must be greater than zero`)
+        if (req.type === "ADD" && req.amount === 0) {
+            delete this.requests.stack[playerId]
+            this.markDirty(true, false)
+            return
+        }
+        if (!this.hand) return this.processStackUpdate(playerId, req)
+        this.requests.stack[playerId] = req
+        this.markDirty(true, false)
+    }
+
+    processStackUpdate(playerId: string, req: IStackRequest) {
+        const player = this.players.get(playerId)
+        if (!player) return
+        if (req.type === "ADD") {
+            if (req.amount >= 0) {
+                player.buyIn += req.amount
+            }
+            else {
+                player.buyOut -= req.amount
+            }
+
+            player.stack += req.amount
+        }
+        else if (req.type === "SET" && req.amount > 0) {
+            player.buyOut += player.stack
+            player.buyIn += req.amount
+            player.stack = req.amount
+        }
+        this.markDirty()
     }
 
     cleanUpAndLeaveSeat(seat: number) {
@@ -212,6 +253,9 @@ export class Game {
             this.settings = this.requests.settings
             this.requests.settings = null
         }
+
+        Object.entries(this.requests.stack).forEach(([pid, req]) => this.processStackUpdate(pid, req))
+        this.requests.stack = {}
 
         this.markDirty()
     }

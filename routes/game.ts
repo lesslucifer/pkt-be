@@ -1,7 +1,7 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import _ from "lodash";
 import HC from "../glob/hc";
-import { Game, GamePlayer, GameSettings, GameStatus } from "../models/game";
+import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../models/game";
 import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
@@ -32,6 +32,22 @@ class GamesRouter extends ExpressRouter {
         return HC.SUCCESS
     }
 
+    @PUT({path: "/players/:playerId/stack"})
+    @ValidBody({
+        '+type': { enum: ['ADD', 'SET'] },
+        '+@amount': 'integer',
+        '++': false
+    })
+    @AuthServ.authGamePlayer()
+    async updateStack(@Player() owner: GamePlayer, @Params('playerId') playerId: string, @Body() reqStackUpdate: IStackRequest) {
+        const game = owner.game
+        if (owner.id !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
+        
+        game.requestStackUpdate(playerId, reqStackUpdate)
+        
+        return HC.SUCCESS
+    }
+
     @PUT({path: "/settings"})
     @ValidBody({
         '+@actionTime': 'number|>=3000|<=300000',
@@ -45,7 +61,6 @@ class GamesRouter extends ExpressRouter {
     async updateSettings(@Player() gamePlayer: GamePlayer, @Body() newSettings: GameSettings) {
         const game = gamePlayer.game
         if (gamePlayer.id !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
-
         if (newSettings.bigBlind <= newSettings.smallBlind) throw new AppLogicError(`Big blind must be greater than small blind`, 400)
         
         if (!game.hand) {
@@ -97,6 +112,7 @@ class GamesRouter extends ExpressRouter {
         if (idx < 0) throw new AppLogicError(`Cannot unleave seat. You haven't request to leave`)
 
         game.requests.seatOut.splice(idx, 1)
+        game.markDirty(true, false)
 
         return game.toJSONWithHand(gamePlayer)
     }
