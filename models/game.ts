@@ -36,6 +36,7 @@ export class Game {
     ownerId: string;
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
+    guests = new Set<string>()
     seats: string[] = Array(9).fill(null)
     hand?: GameHand = null
     dealerSeat = 0
@@ -59,6 +60,13 @@ export class Game {
     lastActive: moment.Moment = moment()
     lastSave: moment.Moment = moment(0)
 
+    addPlayer(playerId: string) {
+        if (!this.players.has(playerId)) {
+            this.players.set(playerId, new GamePlayer(playerId, this))
+        }
+        this.guests.delete(playerId)
+    }
+
     getReadyPlayers() {
         return this.seats.filter(pid => {
             const player = this.players.get(pid)
@@ -81,9 +89,7 @@ export class Game {
             throw new AppLogicError(`Name ${name} is already taken`)
         }
 
-        if (!this.players.has(playerId)) {
-            this.players.set(playerId, new GamePlayer(playerId, this))
-        }
+        this.addPlayer(playerId)
 
         const p = this.players.get(playerId)
         p.name = name
@@ -258,11 +264,22 @@ export class Game {
             const data = this.toJSONWithHand(p)
             sockets.forEach(s => s.emit('update', data))
         })
+
+        if (this.guests.size > 0) {
+            const data = this.toJSONWithHand()
+            this.guests.forEach(gid => {
+                const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${gid}`)
+                if (!sockets.length) return
+
+                sockets.forEach(s => s.emit('update', data))
+            })
+        }
+
     }
 
     connect(playerId: string, socketId: string) {
         if (!this.players.has(playerId)) {
-            this.players.set(playerId, new GamePlayer(playerId, this))
+            this.guests.add(playerId)
         }
 
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)

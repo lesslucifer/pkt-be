@@ -9,7 +9,7 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     async createNewGame(@PlayerId() playerId: string) {
         const game = GameServ.newGame(playerId);
-        game.players.set(playerId, new GamePlayer(playerId, game))
+        game.addPlayer(playerId)
         return game
     }
 }

@@ -36,7 +36,9 @@ export class GameService {
         Object.assign(game, js)
         game.lastActive = moment(js.lastActive)
         game.lastSave = moment(js.lastSave)
-        game.players = new Map(_.map(Object.values(js.players), (p: any) => [p.id, Object.assign(new GamePlayer(p.id, game), p)]))
+        Object.assign(game, {
+            players: new Map(_.map(Object.values(js.players), (p: any) => [p.id, Object.assign(new GamePlayer(p.id, game), p)]))
+        })
         return game
     }
 
