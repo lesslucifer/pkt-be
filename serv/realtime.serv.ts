@@ -1,6 +1,7 @@
 import * as http from 'http';
 import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import ENV from '../glob/env';
 
 type SocketIOConnection =  Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
 
@@ -16,7 +17,8 @@ export class RealtimeService {
         this.io = new Server(server, {
             cors: {
                 origin: '*'
-            }
+            },
+            path: ENV.SOCKETIO_PATH
         })
 
         this.io.on('connection', (socket) => {

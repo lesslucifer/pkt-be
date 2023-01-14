@@ -23,12 +23,14 @@ export interface ENV_CONFIG extends ENV_DB_CONFIG {
     NAME: string;
     HTTP_PORT: number;
     LOG_LEVEL: string;
-    JWT_AUTH: string
+    JWT_AUTH: string;
+    SOCKETIO_PATH: string;
 }
 
 const ajvEnvConfig = ajv({
     '+@NAME': 'string',
     '+@JWT_AUTH': 'string',
+    '@SOCKETIO_PATH': 'string',
     '@HTTP_PORT': 'number',
     '@LOG_LEVEL': 'string',
     ...ajvEnvDbConfig
@@ -39,6 +41,7 @@ const ENV_DEFAULT: Partial<ENV_CONFIG> = {
     HTTP_PORT: 3492,
     LOG_LEVEL: 'debug',
     MONGO_OPTIONS: {},
+    SOCKETIO_PATH: undefined
 }
 
 const envCustomParser = {
