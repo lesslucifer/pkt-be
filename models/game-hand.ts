@@ -162,7 +162,7 @@ export class GameHand {
         const index = this.roundPlayers[0]
         if (!this.roundPlayers.length || this.players[index] !== player) throw new Error(`Invalid betting player`)
 
-        const maxOtherBet = _.maxBy(this.players, p => (p === player || p.status !== HandPlayerStatus.PLAYING ? 0 : p.stack)).stack
+        const maxOtherBet = _.maxBy(this.players, p => (p === player || p.status === HandPlayerStatus.FOLDED ? 0 : p.stack)).stack
         const maxBet = Math.min(player.stack, maxOtherBet)
         if (amount >= maxBet) { // all in
             amount = maxBet

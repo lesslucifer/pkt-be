@@ -34,11 +34,11 @@ class GamesRouter extends ExpressRouter {
 
     @PUT({path: "/settings"})
     @ValidBody({
-        '+@actionTime': 'integer|>=5000',
+        '+@actionTime': 'number|>=3000|<=300000',
         '+@smallBlind': 'integer|>=1',
         '+@bigBlind': 'integer|>=1',
-        '+@gameSpeed': 'integer|>=100',
-        '+@showDownTime': 'integer|>=0',
+        '+@gameSpeed': 'number|>=100|<=10000',
+        '+@showDownTime': 'number|>=1000|<=120000',
         '++': false
     })
     @AuthServ.authGamePlayer()
