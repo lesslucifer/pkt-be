@@ -93,7 +93,7 @@ export class GameHand {
     winners: _.Dictionary<number> = {}
     beginActionTime: number = null
     timeOutAt: number = null
-    comittedPot: number = 0
+    committedPot: number = 0
     pot: _.Dictionary<number> = {}
     betting = 0
     minRaise = 0
@@ -104,7 +104,7 @@ export class GameHand {
     } 
 
     get fullPot() {
-        return this.comittedPot + _.sumBy(this.players, p => p.betting)
+        return this.committedPot + _.sumBy(this.players, p => p.betting)
     }
 
     markDirty(dirty = true) {
@@ -230,7 +230,7 @@ export class GameHand {
             const betAmount = Math.min(p.stack, p.betting)
             p.stack -= betAmount
             this.pot[p.player.id] = (this.pot[p.player.id] ?? 0) + betAmount
-            this.comittedPot += betAmount
+            this.committedPot += betAmount
             p.betting = null
         })
         this.markDirty()
@@ -382,9 +382,9 @@ export class GameHand {
         if (alledInPlayers.length + playingPlayers.length === 1) { // all folded, terminate hand
             this.commitPot()
             const winner = _.first(alledInPlayers) ?? _.first(playingPlayers)
-            winner.stack += this.comittedPot
+            winner.stack += this.committedPot
             _.keys(this.pot).forEach(pid => this.pot[pid] = 0)
-            this.winners = {[winner.player.id]: this.comittedPot}
+            this.winners = {[winner.player.id]: this.committedPot}
             this.moveToShowDown()
             return true
         }
@@ -475,7 +475,7 @@ export class GameHand {
             round: this.round,
             communityCards: this.communityCards,
             roundPlayers: this.roundPlayers.map(i => this.players[i].player.id),
-            comittedPot: this.comittedPot,
+            committedPot: this.committedPot,
             fullPot: this.fullPot,
             betting: this.betting,
             minRaise: this.minRaise,
