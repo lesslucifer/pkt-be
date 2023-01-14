@@ -108,11 +108,17 @@ export class GameService {
         }, 6 * 3600 * 1000) // prunning - run every 6 hour
 
         setInterval(async () => {
-            const removedGames = Array.from(this.games.values())
+            try {
+                const removedGames = Array.from(this.games.values())
                 .filter(g => g?.status === GameStatus.STOPPED && moment().diff(g.lastActive, 'h') >= 6)
 
-            await this.saveGamesIfNeeded(removedGames)
-            removedGames.forEach(g => this.games.delete(g.id))
+                await this.saveGamesIfNeeded(removedGames)
+                removedGames.forEach(g => this.games.delete(g.id))
+            }
+            catch (err) {
+                console.log(`Game clear cache got error`)
+                console.log(err)
+            }
         }, 1800 * 1000) // clear cache - run every 30 minutes
 
         setInterval(() => {
