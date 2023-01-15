@@ -383,11 +383,11 @@ export class GameHand {
             return true
         }
 
-        if (alledInPlayers.length >= 1 && playingPlayers.length <= 1 && (_.first(playingPlayers)?.betting ?? Number.MAX_SAFE_INTEGER) >= this.betting) {
-            const playingPlayer = _.first(playingPlayers)
-            if (playingPlayer) {
-                playingPlayer.status = HandPlayerStatus.ALL_IN
-                playingPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting)))
+        const onlyPlayer = _.first(playingPlayers)
+        if (alledInPlayers.length >= 1 && playingPlayers.length <= 1 && (!onlyPlayer || ((onlyPlayer.betting ?? 0) >= this.betting))) {
+            if (onlyPlayer) {
+                onlyPlayer.status = HandPlayerStatus.ALL_IN
+                onlyPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting)))
             }
             this.autoPlayHandForAllIn()
             return true
