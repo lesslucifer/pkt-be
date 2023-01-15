@@ -170,7 +170,7 @@ export class GameHand {
         }
         else if (amount > this.betting) { // raise
             if (amount - this.betting < this.minRaise) throw Error(`Invalid betting amount, to low raise, at least ${this.betting + this.minRaise}`)
-            if (this.players.find(p => p.status === HandPlayerStatus.ALL_IN)) throw Error(`Cannot raise, there was a player alled in`)
+            // if (this.players.find(p => p.status === HandPlayerStatus.ALL_IN)) throw Error(`Cannot raise, there was a player alled in`)
         }
         else if (amount < this.betting) {
             throw Error(`Invalid betting amount, to low bet. Current betting is ${this.betting}`)
@@ -182,8 +182,6 @@ export class GameHand {
             .filter(i => !this.roundPlayers.includes(i) && this.players[i].status === HandPlayerStatus.PLAYING)
             this.roundPlayers.push(...nextPlayers)
         }
-
-        const betAmount = Math.max(0, amount - player.betting)
 
         this.minRaise = Math.max(this.minRaise, amount - this.betting)
         this.betting = Math.max(this.betting, amount)
@@ -374,10 +372,6 @@ export class GameHand {
         if (playingPlayers.length > 1) return false
         
         const alledInPlayers = this.players.filter(p => p.status === HandPlayerStatus.ALL_IN)
-        if (alledInPlayers.length > 1 && playingPlayers.length === 0) {
-            this.autoPlayHandForAllIn()
-            return true
-        }
 
         if (alledInPlayers.length + playingPlayers.length === 1) { // all folded, terminate hand
             this.commitPot()
@@ -386,6 +380,16 @@ export class GameHand {
             _.keys(this.pot).forEach(pid => this.pot[pid] = 0)
             this.winners = {[winner.player.id]: this.committedPot}
             this.moveToShowDown()
+            return true
+        }
+
+        if (alledInPlayers.length >= 1 && playingPlayers.length <= 1 && (_.first(playingPlayers)?.betting ?? Number.MAX_SAFE_INTEGER) >= this.betting) {
+            const playingPlayer = _.first(playingPlayers)
+            if (playingPlayer) {
+                playingPlayer.status = HandPlayerStatus.ALL_IN
+                playingPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting)))
+            }
+            this.autoPlayHandForAllIn()
             return true
         }
 
@@ -418,12 +422,12 @@ export class GameHand {
 
         if (action.action === ActionType.BET) {
             if (_.isNil(action.amount)) throw new AppLogicError(`Must have bet amount`)
-            this.bet(hp, action.amount)
             this.clearAutoActionTimes()
+            this.bet(hp, action.amount)
         }
         else if (action.action === ActionType.FOLD) {
-            hp.status = HandPlayerStatus.FOLDED
             this.clearAutoActionTimes()
+            hp.status = HandPlayerStatus.FOLDED
         }
         else if (action.action === ActionType.TIME) {
             // TODO: add extra time
