@@ -1,7 +1,7 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import _ from "lodash";
 import HC from "../glob/hc";
-import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../models/game";
+import { Game, GamePlayer, GameSettings, GameStatus, IGameMessage, IStackRequest } from "../models/game";
 import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
@@ -256,6 +256,21 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGame()
     async bindSocket(@PlayerId() playerId: string, @CurrentGame() game: Game, @Params('socketId') socketId: string) {
         game?.connect(playerId, socketId)
+        return HC.SUCCESS
+    }
+
+    @POST({path: "/messages"})
+    @ValidBody({
+        '+@id': 'string',
+        '+@content': 'string'
+    })
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async sendMessage(@PlayerId() playerId: string, @CurrentGame() game: Game, @Body() msg: any) {
+        game.sendMessage({
+            author: playerId,
+            ...msg
+        })
         return HC.SUCCESS
     }
 }

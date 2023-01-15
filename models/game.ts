@@ -19,6 +19,12 @@ export interface GameSettings {
     gameSpeed: number
 }
 
+export interface IGameMessage {
+    id: string
+    author: string
+    content: string
+}
+
 export interface IStackRequest {
     type: 'ADD' | 'SET'
     amount: number
@@ -297,28 +303,40 @@ export class Game {
         }
     }
 
-    sendUpdateToClients() {
-        if (!this.isDirty && !this.hand?.isDirty) return
-        this.isDirty = false
-        this.hand?.markDirty(false)
+    sendDataToClients(key: string, dataSource: (playerId: string) => any) {
         this.players.forEach((p, pid) => {
             const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
             if (!sockets.length) return
 
-            const data = this.toJSONWithHand(p)
-            sockets.forEach(s => s.emit('update', data))
+            const data = dataSource(pid)
+            if (!data) return
+
+            sockets.forEach(s => s.emit(key, data))
         })
 
         if (this.guests.size > 0) {
-            const data = this.toJSONWithHand()
             this.guests.forEach(gid => {
                 const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${gid}`)
                 if (!sockets.length) return
 
-                sockets.forEach(s => s.emit('update', data))
+                const data = dataSource(gid)
+                if (!data) return
+
+                sockets.forEach(s => s.emit(key, data))
             })
         }
+    }
 
+    sendUpdateToClients() {
+        if (!this.isDirty && !this.hand?.isDirty) return
+        this.isDirty = false
+        this.hand?.markDirty(false)
+
+        this.sendDataToClients('update', (pid) => this.toJSONWithHand(this.players.get(pid)))
+    }
+
+    sendMessage(msg: IGameMessage) {
+        this.sendDataToClients('message', () => msg)
     }
 
     connect(playerId: string, socketId: string) {
