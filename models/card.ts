@@ -8,21 +8,17 @@ export enum CardSuit {
 }
 
 // rank: 2 - 14, ace = 14
-export class Card {
-    public readonly desc: string
-    constructor(public readonly rank: number, public readonly suit: CardSuit) {
-        const rankDesc = rank <= 10 ? `${rank}` : {
-            11: 'J',
-            12: 'Q',
-            13: 'K',
-            14: 'A'
-        }[rank]
-        this.desc = `${rankDesc}:${this.suit}`
-    }
+export interface Card {
+    rank: number
+    suit: CardSuit
 }
 
-export const BASE_CARDS: Card[] = _.chain(_.range(2, 15)).flatMap(r => _.values(CardSuit).map(s => new Card(r, s))).value()
-export const MASKED_CARD: Card = new Card(0, CardSuit.HEART)
+export const BASE_CARDS: Card[] = _.chain(_.range(2, 15)).flatMap(r => _.values(CardSuit).map(s => ({rank: r, suit: s}))).value()
+export const MASKED_CARD: Card = {rank: 0, suit: CardSuit.HEART}
+
+export function getCardDesc(card: Card) {
+    return `${card.rank}:${card.suit}`
+}
 
 export class Deck {
     cards: Card[] = [...BASE_CARDS]

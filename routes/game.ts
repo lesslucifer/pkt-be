@@ -1,19 +1,19 @@
 import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
 import _ from "lodash";
 import HC from "../glob/hc";
-import { Game, GamePlayer, GameSettings, GameStatus, IGameMessage, IStackRequest } from "../models/game";
-import { ActionType, GameHandStatus, HandRound, IPlayerAction } from "../models/game-hand";
+import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../models/game";
+import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
 import { ValidBody } from "../utils/decors";
-import hera, { AppLogicError } from "../utils/hera";
+import { AppLogicError } from "../utils/hera";
 
 class GamesRouter extends ExpressRouter {
     @GET({path: "/"})
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async getCurrentGame(@CurrentGame() game: Game, @PlayerId() playerId: string) {
-        return game.toJSONWithHand(game.players.get(playerId))
+    async getCurrentGame(@CurrentGame() game: Game) {
+        return game.toJSON()
     }
 
     @PUT({path: "/ownerId"})
@@ -84,7 +84,7 @@ class GamesRouter extends ExpressRouter {
 
         game.requestLeaveSeat(gamePlayer)
 
-        return game.toJSONWithHand(gamePlayer)
+        return game.toJSON()
     }
 
     @PUT({path: `/players/:playerId/leave`})
@@ -114,7 +114,7 @@ class GamesRouter extends ExpressRouter {
         game.requests.seatOut.splice(idx, 1)
         game.markDirty(true, false)
 
-        return game.toJSONWithHand(gamePlayer)
+        return game.toJSON()
     }
 
     @PUT({path: "/seats/shuffled"})
@@ -126,7 +126,7 @@ class GamesRouter extends ExpressRouter {
         game.seats = _.shuffle(game.seats)
         game.markDirty()
 
-        return game.toJSONWithHand(gamePlayer)
+        return game.toJSON()
     }
 
     @PUT({path: "/seats/:seat"})
@@ -139,7 +139,7 @@ class GamesRouter extends ExpressRouter {
     async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
     @IntParams('seat') seat: number, @Body('buyIn') buyIn: number, @Body('name') name: string) {
         game.requestSeat(playerId, seat, buyIn, name)
-        return game.toJSONWithHand(game.players.get(playerId))
+        return game.toJSON()
     }
 
     @PUT({path: "/status/playing"})
@@ -162,7 +162,7 @@ class GamesRouter extends ExpressRouter {
         game.requests.stopGame = true
         game.markDirty(true, false)
 
-        return game.toJSONWithHand(gamePlayer)
+        return game.toJSON()
     }
 
     @PUT({path: "/status/unstopped"})
@@ -175,7 +175,7 @@ class GamesRouter extends ExpressRouter {
         game.requests.stopGame = false
         game.markDirty(true, false)
 
-        return game.toJSONWithHand(gamePlayer)
+        return game.toJSON()
     }
 
     @PUT({path: "/status/paused"})
@@ -227,20 +227,20 @@ class GamesRouter extends ExpressRouter {
         const game = player.game
         if (!game.hand) throw new AppLogicError(`Cannot take action, no current hand`)
 
-        game.hand.takeAction(player, action)
+        game.hand.takeAction(player.id, action)
 
-        return game.toJSONWithHand(player)
+        return game.toJSON()
     }
 
     @PUT({path: "/hand/showCards/true"})
     @AuthServ.authGamePlayer()
-    async showCards(@Player() player: GamePlayer, @Body() action: IPlayerAction) {
+    async showCards(@Player() player: GamePlayer) {
         const hand = player.game.hand
         if (!hand || hand.status != GameHandStatus.SHOWING_DOWN) {
             throw new AppLogicError(`Cannot show cards! Hand round and status mismatch`)
         }
     
-        const hp = hand.players.find(p => p.player.id === player.id)
+        const hp = hand.playersMap.get(player.id)
         if (!hp) throw new AppLogicError(`Player not in the hand`)
         
         if (!hp.showCard) {
@@ -272,6 +272,18 @@ class GamesRouter extends ExpressRouter {
             ...msg
         })
         return HC.SUCCESS
+    }
+
+    @GET({path: "/hand/cards"})
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async getMyCard(@PlayerId() playerId: string, @CurrentGame() game: Game) {
+        const cards = game.hand?.playerCards?.[playerId]
+        if (!cards) return cards
+        return {
+            hand: game.hand.id,
+            cards
+        }
     }
 }
 

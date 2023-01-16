@@ -57,7 +57,7 @@ export class GameService {
         return await this.DB.bulkWrite(games.map(g => ({
             updateOne: {
                 filter: { id: g.id },
-                update: { $set: g.toJSON() },
+                update: { $set: g.dataJSON() },
                 upsert: true
             }
         })))
@@ -153,7 +153,7 @@ export class GameService {
 
         RealtimeServ.onSocketDisconnected = (socketId, bindings) => {
             if (!bindings) return
-            bindings.forEach(id => this.games.get(id)?.markDirty(true, false))
+            bindings.forEach(id => this.games.get(id)?.markDirty(true, false)) // TODO
         }
     }
 }

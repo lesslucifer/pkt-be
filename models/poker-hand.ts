@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Card, CardSuit } from "./card";
+import { Card, CardSuit, getCardDesc } from "./card";
 
 export enum PokerHandRank {
     HIGH_CARD = 0,
@@ -20,14 +20,21 @@ export interface PokerHandRankResult {
     suit?: CardSuit // some rank needs suit
 }
 
-export interface PokerHandResult extends PokerHandRankResult {
+export interface PokerHandCalcResult extends PokerHandRankResult {
     selectedCard: Card[]
     holeCardIndexes: number[]
     communityCardsIndexes: number[]
 }
 
+export interface PokerHandResult {
+    rank: PokerHandRank
+    holeCardIndexes: number[]
+    values: number[] // values store the value of the hand depends on rank
+    communityCardsIndexes: number[]
+}
+
 export class PokerHand {
-    static calcHand(holeCards: Card[], communityCards: Card[]) {
+    static calcHand(holeCards: Card[], communityCards: Card[]): PokerHandResult {
         if (holeCards.length !== 2 || communityCards.length !== 5) throw new Error(`Invalid numer of cards`)
         const cards = [...holeCards, ...communityCards]
         const rankCheckers = [this.checkStraightFlush, this.checkFourOfAKind, this.checkFullHouse,
@@ -40,22 +47,27 @@ export class PokerHand {
             if (rankResult) break
         }
 
-        const result: PokerHandResult = {
+        const result: PokerHandCalcResult = {
             ...rankResult,
             selectedCard: this.getSelectedCard(cards, rankResult),
             holeCardIndexes: [],
             communityCardsIndexes: [],
         }
 
-        const selCardDescs = new Set(result.selectedCard.map(c => c.desc))
-        result.holeCardIndexes = _.range(holeCards.length).filter(i => selCardDescs.has(holeCards[i].desc))
-        result.communityCardsIndexes = _.range(communityCards.length).filter(i => selCardDescs.has(communityCards[i].desc))
+        const selCardDescs = new Set(result.selectedCard.map(c => getCardDesc(c)))
+        result.holeCardIndexes = _.range(holeCards.length).filter(i => selCardDescs.has(getCardDesc(holeCards[i])))
+        result.communityCardsIndexes = _.range(communityCards.length).filter(i => selCardDescs.has(getCardDesc(communityCards[i])))
         
         if (result.rank === PokerHandRank.STRAIGHT_FLUSH && result.values[0] === 14) {
             result.rank = PokerHandRank.ROYAL_FLUSH
         }
 
-        return result
+        return {
+            rank: result.rank,
+            values: result.values,
+            communityCardsIndexes: result.communityCardsIndexes,
+            holeCardIndexes: result.holeCardIndexes,
+        }
     }
 
     static getSelectedCard(cards: Card[], result: PokerHandRankResult): Card[] {
@@ -85,7 +97,7 @@ export class PokerHand {
     }
 
     static checkStraightFlush(cards: Card[]): PokerHandRankResult {
-        const cardSet = new Set(cards.map(c => c.desc))
+        const cardSet = new Set(cards.map(c => getCardDesc(c)))
         cards.forEach(c => {
             if (c.rank === 14) {
                 cardSet.add(`1:${c.suit}`) // for bottom straight

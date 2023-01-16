@@ -6,23 +6,22 @@ import { Game, GamePlayer, GameStatus } from "./game";
 import { PokerHand, PokerHandResult } from "./poker-hand";
 
 export enum HandPlayerStatus {
-    PLAYING = 'PLAYING',
-    FOLDED = 'FOLDED',
-    ALL_IN = 'ALL_IN'
+    PLAYING = 'P',
+    FOLDED = 'F',
+    ALL_IN = 'A'
 }
 
 export enum HandRound {
-    PRE_FLOP = 'PRE_FLOP',
-    FLOP = 'FLOP',
-    TURN = 'TURN',
-    RIVER = 'RIVER',
-    DONE = 'DONE',
+    PRE_FLOP = 'PF',
+    FLOP = 'F',
+    TURN = 'T',
+    RIVER = 'R',
+    DONE = 'D',
 }
 
 export class HandPlayer {
-    player: GamePlayer
+    id: string
     seatIndex: number
-    cards: Card[]
     status: HandPlayerStatus = HandPlayerStatus.PLAYING
     result?: PokerHandResult
     stack: number
@@ -30,30 +29,20 @@ export class HandPlayer {
     showCard = false
 
     constructor(p: GamePlayer, seatIndex: number) {
-        this.player = p
+        this.id = p.id
         this.stack = p.stack
         this.seatIndex = seatIndex
     }
 
-    toJSON(player?: GamePlayer) {
+    toJSON() {
         return {
-            player: this.player.toJSON(),
-            seatIndex: this.seatIndex,
+            id: this.id,
             status: this.status,
             betting: this.betting,
             stack: this.stack,
             result: this.result,
-            showCard: this.showCard,
-            cards: this.cardJSON(player)
+            showCard: this.showCard
         }
-    }
-
-    cardJSON(player?: GamePlayer) {
-        if (!this.cards.length || this.showCard || player?.id === this.player.id) {
-            return this.cards
-        }
-
-        return [MASKED_CARD, MASKED_CARD]
     }
 }
 
@@ -70,11 +59,11 @@ export interface IPlayerAction {
 }
 
 export enum GameHandStatus {
-    READY = 'READY',
-    PLAYING = 'PLAYING',
-    AUTO = 'AUTO',
-    SHOWING_DOWN = 'SHOWING_DOWN',
-    OVER = 'OVER',
+    READY = 'R',
+    PLAYING = 'P',
+    AUTO = 'A',
+    SHOWING_DOWN = 'SD',
+    OVER = 'O',
 }
 
 export interface GameHandWinner {
@@ -83,9 +72,11 @@ export interface GameHandWinner {
 }
 
 export class GameHand {
-    id: string
+    id: number
     deck: Deck = new Deck()
-    players: HandPlayer[]
+    playersMap: Map<string, HandPlayer> = new Map()
+    playerCards: _.Dictionary<Card[]> = {}
+
     roundPlayers: number[]
     status: GameHandStatus = GameHandStatus.READY
     round: HandRound = HandRound.PRE_FLOP
@@ -97,10 +88,12 @@ export class GameHand {
     pot: _.Dictionary<number> = {}
     betting = 0
     minRaise = 0
+    
     isDirty = true
 
-    constructor(public game: Game) {
-        this.id = `${game.id}:${shortid.generate()}`
+    constructor(private game: Game, private players: HandPlayer[]) {
+        this.id = game.nextHandId()
+        players.forEach(p => this.playersMap.set(p.id, p))
     } 
 
     get fullPot() {
@@ -148,7 +141,7 @@ export class GameHand {
         
         this.deck.shuffle()
         this.players.forEach(p => {
-            p.cards = [this.deck.deal(), this.deck.deal()]
+            this.playerCards[p.id] = [this.deck.deal(), this.deck.deal()]
         })
 
         this.markDirty()
@@ -227,7 +220,7 @@ export class GameHand {
         this.players.forEach(p => {
             const betAmount = Math.min(p.stack, p.betting)
             p.stack -= betAmount
-            this.pot[p.player.id] = (this.pot[p.player.id] ?? 0) + betAmount
+            this.pot[p.id] = (this.pot[p.id] ?? 0) + betAmount
             this.committedPot += betAmount
             p.betting = null
         })
@@ -256,7 +249,7 @@ export class GameHand {
         if (this.status !== GameHandStatus.PLAYING && this.status !== GameHandStatus.AUTO) throw new Error(`The hand is not playing`)
         
         const players = this.players.filter(p => p.status !== HandPlayerStatus.FOLDED)
-        players.forEach(p => p.result = PokerHand.calcHand(p.cards, this.communityCards))
+        players.forEach(p => p.result = PokerHand.calcHand(this.playerCards[p.id], this.communityCards))
 
         const findWinners = (players: HandPlayer[]) => {
             if (players.length <= 1) return players
@@ -285,32 +278,30 @@ export class GameHand {
             const winPot = pot / players.length
             const remain = winPot % players.length
 
-            players.forEach((p, i) => this.winners[p.player.id] = (this.winners[p.player.id] ?? 0) + winPot + (i < remain ? 1 : 0))
+            players.forEach((p, i) => this.winners[p.id] = (this.winners[p.id] ?? 0) + winPot + (i < remain ? 1 : 0))
         }
 
         let remainingPlayers = players
         while (remainingPlayers.length > 0) {
             const winners = findWinners(remainingPlayers)
-            const leastCommitted = _.min(winners.map(w => this.pot[w.player.id]))
+            const leastCommitted = _.min(winners.map(w => this.pot[w.id]))
             const takenPot = takePot(leastCommitted)
             distPotToWinners(takenPot, winners)
 
-            remainingPlayers = remainingPlayers.filter(p => this.pot[p.player.id] > 0)
+            remainingPlayers = remainingPlayers.filter(p => this.pot[p.id] > 0)
         }
-
-        const handPlayers = _.keyBy(this.players, hp => hp.player.id)
 
         _.entries(this.winners).forEach(([pid, winAmount]) => {
             if (winAmount <= 0) return
-            handPlayers[pid].stack += winAmount
-            handPlayers[pid].showCard = true
+            this.playersMap.get(pid).stack += winAmount
+            this.playersMap.get(pid).showCard = true
         })
 
         // This case shouldn't be existed, just a safe-check. All remaining committed post shouuld return to the player
         _.entries(this.pot).forEach(([pid, amount]) => {
             if (amount > 0) {
                 console.log(`Complete hand error, there are pot remained`, pid, amount)
-                handPlayers[pid].stack += amount
+                this.playersMap.get(pid).stack += amount
             }
         })
 
@@ -319,7 +310,7 @@ export class GameHand {
 
     moveToShowDown() {
         // transfer to game player stack when entering showdown
-        this.players.forEach(hp => hp.player.stack = hp.stack)
+        this.players.forEach(hp => this.game.players.get(hp.id).stack = hp.stack)
 
         if (this.status === GameHandStatus.PLAYING || this.status === GameHandStatus.AUTO) {
             this.status = GameHandStatus.SHOWING_DOWN
@@ -346,27 +337,6 @@ export class GameHand {
         this.markDirty()
     }
 
-    // distPotToWinners(winners: HandPlayer[], autoShowCard = true): GameHandWinner[] {
-    //     if (winners.length <= 0) return // TODO: Log error here, noway to have no winner
-
-    //     // TODO: All in case
-    //     const winPot = this.pot / winners.length
-    //     const remain = winPot % winners.length
-
-    //     this.winners = winners.map((w, i) => {
-    //         const amount = winPot + (i < remain ? 1 : 0)
-    //         w.stack += amount
-    //         if (autoShowCard) {
-    //             w.showCard = true
-    //         }
-    //         return {
-    //             id: w.player.id,
-    //             amount
-    //         }
-    //     })
-    //     this.markDirty()
-    // }
-
     checkTerminatedHand(): boolean {
         const playingPlayers = this.players.filter(p => p.status === HandPlayerStatus.PLAYING)
         if (playingPlayers.length > 1) return false
@@ -378,7 +348,7 @@ export class GameHand {
             const winner = _.first(alledInPlayers) ?? _.first(playingPlayers)
             winner.stack += this.committedPot
             _.keys(this.pot).forEach(pid => this.pot[pid] = 0)
-            this.winners = {[winner.player.id]: this.committedPot}
+            this.winners = {[winner.id]: this.committedPot}
             this.moveToShowDown()
             return true
         }
@@ -412,12 +382,12 @@ export class GameHand {
         }
     }
 
-    takeAction(player: GamePlayer, action: IPlayerAction) {
+    takeAction(playerId: string, action: IPlayerAction) {
         const game = this.game
         if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot take action! Game is not playing`)
         if (this.status !== GameHandStatus.PLAYING) throw new AppLogicError(`Hand is not playing`)
-        if (!this.roundPlayers.length || this.players[this.roundPlayers[0]].player.id !== player.id) throw new Error(`Not current player`)
-        const hp = this.players.find(p => p.player.id === player.id)
+        if (!this.roundPlayers.length || this.players[this.roundPlayers[0]].id !== playerId) throw new Error(`Not current player`)
+        const hp = this.playersMap.get(playerId)
         if (!hp || hp.status !== HandPlayerStatus.PLAYING) throw new AppLogicError(`Cannot take action! Player is not playing`)
 
         if (action.action === ActionType.BET) {
@@ -459,32 +429,32 @@ export class GameHand {
         if (!player) return
 
         if (player.betting >= this.betting) { // checkable
-            this.takeAction(player.player, {
+            this.takeAction(player.id, {
                 action: ActionType.BET,
                 amount: player.betting ?? 0
             })
         }
         else {
-            this.takeAction(player.player, {
+            this.takeAction(player.id, {
                 action: ActionType.FOLD
             })
         }
     }
 
-    toJSON(player?: GamePlayer) {
+    toJSON() {
         return {
             id: this.id,
-            players: this.players.map(p => p.toJSON(player)),
+            players: this.players,
+            playerCards: hera.arrToObj(this.players.filter(p => p.showCard), p => p.id, p => this.playerCards[p.id]),
             status: this.status,
             round: this.round,
             communityCards: this.communityCards,
-            roundPlayers: this.roundPlayers.map(i => this.players[i].player.id),
+            currentPlayer: this.roundPlayers.length > 0 ? this.players[this.roundPlayers[0]].id : null,
             committedPot: this.committedPot,
             fullPot: this.fullPot,
             betting: this.betting,
             minRaise: this.minRaise,
             beginActionTime: this.beginActionTime,
-            currentTime: Date.now(),
             timeOutAt: this.timeOutAt,
             winners: this.winners,
         }

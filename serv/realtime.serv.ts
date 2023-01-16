@@ -76,6 +76,17 @@ export class RealtimeService {
         if (!socketIds || !socketIds.size) return []
         return [...socketIds].map(sid => this.getSocket(sid)).filter(s => !!s)
     }
+
+    joinRoom(room: string, socketId: string) {
+        const socket = this.getSocket(socketId)
+        if (!socket) return
+        socket.join(room)
+    }
+
+    roomBroadcast(room: string, key: string, msg: any) {
+        if (!room || !key || !msg) return
+        this.io.to(room).emit(key, msg)
+    }
 }
 
 export const RealtimeServ = new RealtimeService()

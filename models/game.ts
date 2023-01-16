@@ -48,9 +48,10 @@ export class Game {
     ownerId: string;
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
-    guests = new Set<string>()
     seats: string[] = Array(9).fill(null)
     hand?: GameHand = null
+    
+    handCount = 0
     dealerSeat = 0
 
     settings: GameSettings = {
@@ -73,11 +74,14 @@ export class Game {
     lastActive: moment.Moment = moment()
     lastSave: moment.Moment = moment(0)
 
+    nextHandId() {
+        return this.handCount++
+    }
+
     addPlayer(playerId: string) {
         if (!this.players.has(playerId)) {
             this.players.set(playerId, new GamePlayer(playerId, this))
         }
-        this.guests.delete(playerId)
     }
 
     getReadyPlayers() {
@@ -221,11 +225,12 @@ export class Game {
             this.dealerSeat = (this.dealerSeat + 1) % this.seats.length
         } while (!this.seats[this.dealerSeat])
 
-        const hand = new GameHand(this)
-        hand.players = _.range(this.seats.length)
+        const handPlayers = _.range(this.seats.length)
             .map(i => (i + this.dealerSeat + 1) % this.seats.length)
             .filter(i => this.seats[i])
-            .map(i => new HandPlayer(this.players.get(this.seats[i]), i))
+            .map(i => new HandPlayer(this.players.get(this.seats[i]), i)
+        )
+        const hand = new GameHand(this, handPlayers)
         this.hand = hand
 
         hand.start()
@@ -266,7 +271,7 @@ export class Game {
         this.markDirty()
     }
 
-    toJSON() {
+    dataJSON() {
         return {
             id: this.id,
             ownerId: this.ownerId,
@@ -274,13 +279,14 @@ export class Game {
             seats: this.seats,
             players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
+            handCount: this.handCount,
             settings: this.settings,
             lastActive: this.lastActive.valueOf(),
             lastSave: this.lastSave.valueOf()
         }
     }
 
-    toJSONWithHand(player?: GamePlayer) {
+    toJSON() {
         return {
             id: this.id,
             ownerId: this.ownerId,
@@ -292,7 +298,8 @@ export class Game {
             lastActive: this.lastActive,
             settings: this.settings,
             requests: this.requests,
-            hand: this.hand?.toJSON(player)
+            time: Date.now(),
+            hand: this.hand?.toJSON()
         }
     }
 
@@ -303,47 +310,30 @@ export class Game {
         }
     }
 
-    sendDataToClients(key: string, dataSource: (playerId: string) => any) {
-        this.players.forEach((p, pid) => {
-            const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`)
-            if (!sockets.length) return
-
-            const data = dataSource(pid)
-            if (!data) return
-
-            sockets.forEach(s => s.emit(key, data))
-        })
-
-        if (this.guests.size > 0) {
-            this.guests.forEach(gid => {
-                const sockets = RealtimeServ.getSocketsFromBinding(`${this.id}:${gid}`)
-                if (!sockets.length) return
-
-                const data = dataSource(gid)
-                if (!data) return
-
-                sockets.forEach(s => s.emit(key, data))
-            })
-        }
-    }
-
     sendUpdateToClients() {
         if (!this.isDirty && !this.hand?.isDirty) return
+
+        if (this.isDirty) {
+            RealtimeServ.roomBroadcast(this.id, 'update_game', this.toJSON())
+        }
+        else {
+            RealtimeServ.roomBroadcast(this.id, 'update_hand', {
+                id: this.id,
+                time: Date.now(),
+                hand: this.hand?.toJSON()
+            })
+        }
+
         this.isDirty = false
         this.hand?.markDirty(false)
-
-        this.sendDataToClients('update', (pid) => this.toJSONWithHand(this.players.get(pid)))
     }
 
     sendMessage(msg: IGameMessage) {
-        this.sendDataToClients('message', () => msg)
+        RealtimeServ.roomBroadcast(this.id, 'message', msg)
     }
 
     connect(playerId: string, socketId: string) {
-        if (!this.players.has(playerId)) {
-            this.guests.add(playerId)
-        }
-
+        RealtimeServ.joinRoom(this.id, socketId)
         RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
         RealtimeServ.bind(this.id, socketId)
         this.markDirty(true, false)
