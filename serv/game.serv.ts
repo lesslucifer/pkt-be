@@ -17,7 +17,7 @@ export class GameService {
         const game = new Game(shortid.generate(), playerId)
         game.lastSave = game.lastActive
         this.games.set(game.id, game)
-        this.DB.insertOne(game.toJSON())
+        this.DB.insertOne(game.dataJSON())
         return game
     }
 

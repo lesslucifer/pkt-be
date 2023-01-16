@@ -295,7 +295,6 @@ export class Game {
             players: _.fromPairs([...this.players.entries()]),
             onlinePlayers: [...this.players.keys()].filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0),
             dealerSeat: this.dealerSeat,
-            lastActive: this.lastActive,
             settings: this.settings,
             requests: this.requests,
             time: Date.now(),
