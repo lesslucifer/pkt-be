@@ -59,7 +59,7 @@ export class Game {
         bigBlind: 20,
         smallBlind: 10,
         gameSpeed: 500,
-        showDownTime: 6000
+        showDownTime: 4000
     }
 
     requests: GameRequests = {

@@ -1,10 +1,10 @@
-import { Game, GamePlayer, GameStatus } from "../models/game";
-import shortid from 'shortid';
-import fs = require('fs-extra')
-import moment from "moment";
 import _ from "lodash";
+import moment from "moment";
+import shortid from 'shortid';
 import CONN from "../glob/conn";
+import { Game, GamePlayer, GameStatus } from "../models/game";
 import RealtimeServ from "./realtime.serv";
+import fs = require('fs-extra')
 
 export class GameService {
     get DB() {
