@@ -48,7 +48,7 @@ export class Game {
     ownerId: string;
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
-    seats: string[] = Array(9).fill(null)
+    seats: string[] = Array(9).fill('')
     hand?: GameHand = null
     
     handCount = 0
