@@ -2194,6 +2194,254 @@
         return HandPlayer;
     })();
     
+    $root.PlayerCards = (function() {
+    
+        /**
+         * Properties of a PlayerCards.
+         * @exports IPlayerCards
+         * @interface IPlayerCards
+         * @property {string|null} [id] PlayerCards id
+         * @property {Array.<ICard>|null} [cards] PlayerCards cards
+         */
+    
+        /**
+         * Constructs a new PlayerCards.
+         * @exports PlayerCards
+         * @classdesc Represents a PlayerCards.
+         * @implements IPlayerCards
+         * @constructor
+         * @param {IPlayerCards=} [properties] Properties to set
+         */
+        function PlayerCards(properties) {
+            this.cards = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+    
+        /**
+         * PlayerCards id.
+         * @member {string} id
+         * @memberof PlayerCards
+         * @instance
+         */
+        PlayerCards.prototype.id = "";
+    
+        /**
+         * PlayerCards cards.
+         * @member {Array.<ICard>} cards
+         * @memberof PlayerCards
+         * @instance
+         */
+        PlayerCards.prototype.cards = $util.emptyArray;
+    
+        /**
+         * Creates a new PlayerCards instance using the specified properties.
+         * @function create
+         * @memberof PlayerCards
+         * @static
+         * @param {IPlayerCards=} [properties] Properties to set
+         * @returns {PlayerCards} PlayerCards instance
+         */
+        PlayerCards.create = function create(properties) {
+            return new PlayerCards(properties);
+        };
+    
+        /**
+         * Encodes the specified PlayerCards message. Does not implicitly {@link PlayerCards.verify|verify} messages.
+         * @function encode
+         * @memberof PlayerCards
+         * @static
+         * @param {IPlayerCards} message PlayerCards message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        PlayerCards.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+            if (message.cards != null && message.cards.length)
+                for (var i = 0; i < message.cards.length; ++i)
+                    $root.Card.encode(message.cards[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+    
+        /**
+         * Encodes the specified PlayerCards message, length delimited. Does not implicitly {@link PlayerCards.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof PlayerCards
+         * @static
+         * @param {IPlayerCards} message PlayerCards message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        PlayerCards.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+    
+        /**
+         * Decodes a PlayerCards message from the specified reader or buffer.
+         * @function decode
+         * @memberof PlayerCards
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {PlayerCards} PlayerCards
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        PlayerCards.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.PlayerCards();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.string();
+                        break;
+                    }
+                case 2: {
+                        if (!(message.cards && message.cards.length))
+                            message.cards = [];
+                        message.cards.push($root.Card.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Decodes a PlayerCards message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof PlayerCards
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {PlayerCards} PlayerCards
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        PlayerCards.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+    
+        /**
+         * Verifies a PlayerCards message.
+         * @function verify
+         * @memberof PlayerCards
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        PlayerCards.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isString(message.id))
+                    return "id: string expected";
+            if (message.cards != null && message.hasOwnProperty("cards")) {
+                if (!Array.isArray(message.cards))
+                    return "cards: array expected";
+                for (var i = 0; i < message.cards.length; ++i) {
+                    var error = $root.Card.verify(message.cards[i]);
+                    if (error)
+                        return "cards." + error;
+                }
+            }
+            return null;
+        };
+    
+        /**
+         * Creates a PlayerCards message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof PlayerCards
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {PlayerCards} PlayerCards
+         */
+        PlayerCards.fromObject = function fromObject(object) {
+            if (object instanceof $root.PlayerCards)
+                return object;
+            var message = new $root.PlayerCards();
+            if (object.id != null)
+                message.id = String(object.id);
+            if (object.cards) {
+                if (!Array.isArray(object.cards))
+                    throw TypeError(".PlayerCards.cards: array expected");
+                message.cards = [];
+                for (var i = 0; i < object.cards.length; ++i) {
+                    if (typeof object.cards[i] !== "object")
+                        throw TypeError(".PlayerCards.cards: object expected");
+                    message.cards[i] = $root.Card.fromObject(object.cards[i]);
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Creates a plain object from a PlayerCards message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof PlayerCards
+         * @static
+         * @param {PlayerCards} message PlayerCards
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        PlayerCards.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.cards = [];
+            if (options.defaults)
+                object.id = "";
+            if (message.id != null && message.hasOwnProperty("id"))
+                object.id = message.id;
+            if (message.cards && message.cards.length) {
+                object.cards = [];
+                for (var j = 0; j < message.cards.length; ++j)
+                    object.cards[j] = $root.Card.toObject(message.cards[j], options);
+            }
+            return object;
+        };
+    
+        /**
+         * Converts this PlayerCards to JSON.
+         * @function toJSON
+         * @memberof PlayerCards
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        PlayerCards.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+    
+        /**
+         * Gets the default type url for PlayerCards
+         * @function getTypeUrl
+         * @memberof PlayerCards
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        PlayerCards.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/PlayerCards";
+        };
+    
+        return PlayerCards;
+    })();
+    
     $root.GameHand = (function() {
     
         /**
@@ -2202,7 +2450,7 @@
          * @interface IGameHand
          * @property {number|null} [id] GameHand id
          * @property {Array.<IHandPlayer>|null} [players] GameHand players
-         * @property {Object.<string,ICard>|null} [playerCards] GameHand playerCards
+         * @property {Array.<IPlayerCards>|null} [playerCards] GameHand playerCards
          * @property {string|null} [status] GameHand status
          * @property {string|null} [round] GameHand round
          * @property {Array.<ICard>|null} [communityCards] GameHand communityCards
@@ -2226,7 +2474,7 @@
          */
         function GameHand(properties) {
             this.players = [];
-            this.playerCards = {};
+            this.playerCards = [];
             this.communityCards = [];
             this.winners = {};
             if (properties)
@@ -2253,11 +2501,11 @@
     
         /**
          * GameHand playerCards.
-         * @member {Object.<string,ICard>} playerCards
+         * @member {Array.<IPlayerCards>} playerCards
          * @memberof GameHand
          * @instance
          */
-        GameHand.prototype.playerCards = $util.emptyObject;
+        GameHand.prototype.playerCards = $util.emptyArray;
     
         /**
          * GameHand status.
@@ -2390,11 +2638,9 @@
             if (message.players != null && message.players.length)
                 for (var i = 0; i < message.players.length; ++i)
                     $root.HandPlayer.encode(message.players[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-            if (message.playerCards != null && Object.hasOwnProperty.call(message, "playerCards"))
-                for (var keys = Object.keys(message.playerCards), i = 0; i < keys.length; ++i) {
-                    writer.uint32(/* id 3, wireType 2 =*/26).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
-                    $root.Card.encode(message.playerCards[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
-                }
+            if (message.playerCards != null && message.playerCards.length)
+                for (var i = 0; i < message.playerCards.length; ++i)
+                    $root.PlayerCards.encode(message.playerCards[i], writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             if (message.status != null && Object.hasOwnProperty.call(message, "status"))
                 writer.uint32(/* id 4, wireType 2 =*/34).string(message.status);
             if (message.round != null && Object.hasOwnProperty.call(message, "round"))
@@ -2464,26 +2710,9 @@
                         break;
                     }
                 case 3: {
-                        if (message.playerCards === $util.emptyObject)
-                            message.playerCards = {};
-                        var end2 = reader.uint32() + reader.pos;
-                        key = "";
-                        value = null;
-                        while (reader.pos < end2) {
-                            var tag2 = reader.uint32();
-                            switch (tag2 >>> 3) {
-                            case 1:
-                                key = reader.string();
-                                break;
-                            case 2:
-                                value = $root.Card.decode(reader, reader.uint32());
-                                break;
-                            default:
-                                reader.skipType(tag2 & 7);
-                                break;
-                            }
-                        }
-                        message.playerCards[key] = value;
+                        if (!(message.playerCards && message.playerCards.length))
+                            message.playerCards = [];
+                        message.playerCards.push($root.PlayerCards.decode(reader, reader.uint32()));
                         break;
                     }
                 case 4: {
@@ -2600,11 +2829,10 @@
                 }
             }
             if (message.playerCards != null && message.hasOwnProperty("playerCards")) {
-                if (!$util.isObject(message.playerCards))
-                    return "playerCards: object expected";
-                var key = Object.keys(message.playerCards);
-                for (var i = 0; i < key.length; ++i) {
-                    var error = $root.Card.verify(message.playerCards[key[i]]);
+                if (!Array.isArray(message.playerCards))
+                    return "playerCards: array expected";
+                for (var i = 0; i < message.playerCards.length; ++i) {
+                    var error = $root.PlayerCards.verify(message.playerCards[i]);
                     if (error)
                         return "playerCards." + error;
                 }
@@ -2683,13 +2911,13 @@
                 }
             }
             if (object.playerCards) {
-                if (typeof object.playerCards !== "object")
-                    throw TypeError(".GameHand.playerCards: object expected");
-                message.playerCards = {};
-                for (var keys = Object.keys(object.playerCards), i = 0; i < keys.length; ++i) {
-                    if (typeof object.playerCards[keys[i]] !== "object")
+                if (!Array.isArray(object.playerCards))
+                    throw TypeError(".GameHand.playerCards: array expected");
+                message.playerCards = [];
+                for (var i = 0; i < object.playerCards.length; ++i) {
+                    if (typeof object.playerCards[i] !== "object")
                         throw TypeError(".GameHand.playerCards: object expected");
-                    message.playerCards[keys[i]] = $root.Card.fromObject(object.playerCards[keys[i]]);
+                    message.playerCards[i] = $root.PlayerCards.fromObject(object.playerCards[i]);
                 }
             }
             if (object.status != null)
@@ -2759,12 +2987,11 @@
             var object = {};
             if (options.arrays || options.defaults) {
                 object.players = [];
+                object.playerCards = [];
                 object.communityCards = [];
             }
-            if (options.objects || options.defaults) {
-                object.playerCards = {};
+            if (options.objects || options.defaults)
                 object.winners = {};
-            }
             if (options.defaults) {
                 object.id = 0;
                 object.status = "";
@@ -2791,11 +3018,10 @@
                 for (var j = 0; j < message.players.length; ++j)
                     object.players[j] = $root.HandPlayer.toObject(message.players[j], options);
             }
-            var keys2;
-            if (message.playerCards && (keys2 = Object.keys(message.playerCards)).length) {
-                object.playerCards = {};
-                for (var j = 0; j < keys2.length; ++j)
-                    object.playerCards[keys2[j]] = $root.Card.toObject(message.playerCards[keys2[j]], options);
+            if (message.playerCards && message.playerCards.length) {
+                object.playerCards = [];
+                for (var j = 0; j < message.playerCards.length; ++j)
+                    object.playerCards[j] = $root.PlayerCards.toObject(message.playerCards[j], options);
             }
             if (message.status != null && message.hasOwnProperty("status"))
                 object.status = message.status;
@@ -2829,6 +3055,7 @@
                     object.timeOutAt = options.longs === String ? String(message.timeOutAt) : message.timeOutAt;
                 else
                     object.timeOutAt = options.longs === String ? $util.Long.prototype.toString.call(message.timeOutAt) : options.longs === Number ? new $util.LongBits(message.timeOutAt.low >>> 0, message.timeOutAt.high >>> 0).toNumber() : message.timeOutAt;
+            var keys2;
             if (message.winners && (keys2 = Object.keys(message.winners)).length) {
                 object.winners = {};
                 for (var j = 0; j < keys2.length; ++j)

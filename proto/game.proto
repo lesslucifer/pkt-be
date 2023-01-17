@@ -51,10 +51,15 @@ message HandPlayer {
     optional PokerHandResult result = 6;
 }
 
+message PlayerCards {
+    string id = 1;
+    repeated Card cards = 2;
+}
+
 message GameHand {
     int32 id = 1;
     repeated HandPlayer players = 2;
-    map<string, Card> playerCards = 3;
+    repeated PlayerCards playerCards = 3;
     string status = 4;
     string round = 5;
     repeated Card communityCards = 6;

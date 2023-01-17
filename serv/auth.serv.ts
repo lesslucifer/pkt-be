@@ -1,7 +1,7 @@
 import express = require('express');
 import { addMiddlewareDecor, ExpressRouter } from "express-router-ts";
 import ENV from '../glob/env';
-import { JWTAuth } from '../utils/auth';
+import { IAuthUser, JWTAuth } from '../utils/auth';
 import hera, { AppLogicError } from '../utils/hera';
 import GameServ from './game.serv';
 
@@ -14,7 +14,14 @@ export class AuthServ {
                 const token = req.header('Authorization');
                 if (!token) throw ExpressRouter.NEXT;
 
-                const user = await this.authenticator.getUser(token)
+                let user: IAuthUser
+                try {
+                    user = await this.authenticator.getUser(token)
+                }
+                catch (err) {
+                    throw new AppLogicError(err?.message ?? 'Authorization error', 401)
+                }
+
                 if (hera.isEmpty(user?.id)) throw ExpressRouter.NEXT;
 
                 req.session.playerId =  user.id as string

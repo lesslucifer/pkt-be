@@ -445,7 +445,7 @@ export class GameHand {
         return {
             id: this.id,
             players: this.players,
-            playerCards: hera.arrToObj(this.players.filter(p => p.showCard), p => p.id, p => this.playerCards[p.id]),
+            playerCards: this.players.filter(p => p.showCard).map(p => ({id: p.id, cards: this.playerCards[p.id]})),
             status: this.status,
             round: this.round,
             communityCards: this.communityCards,
