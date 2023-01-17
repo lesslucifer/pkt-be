@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+message GamePlayer {
+    string id = 1;
+    string name = 2;
+    string status = 3;
+    int32 stack = 4;
+    int32 buyIn = 5;
+    int32 buyOut = 6;
+}
+
+message GameSettings {
+    int32 smallBlind = 1;
+    int32 bigBlind = 2;
+    float showDownTime = 3;
+    float actionTime = 4;
+    float gameSpeed = 5;
+}
+
+message StackRequest {
+    string type = 1;
+    int32 amount = 2;
+}
+
+message GameRequests {
+    map<string, int32> seatIn = 1;
+    repeated int32 seatOut = 2;
+    bool stopGame = 3;
+    GameSettings settings = 4;
+    map<string, StackRequest> stack = 5;
+}
+
+message Card {
+    int32 rank = 1;
+    string suit = 2;
+}
+
+message PokerHandResult {
+    int32 rank = 1;
+    repeated int32 holeCardIndexes = 2;
+    repeated int32 values = 3;
+    repeated int32 communityCardsIndexes = 4;
+}
+
+message HandPlayer {
+    string id = 1;
+    string status = 2;
+    int32 stack = 3;
+    optional int32 betting = 4;
+    bool showCard = 5;
+    optional PokerHandResult result = 6;
+}
+
+message GameHand {
+    int32 id = 1;
+    repeated HandPlayer players = 2;
+    map<string, Card> playerCards = 3;
+    string status = 4;
+    string round = 5;
+    repeated Card communityCards = 6;
+    optional string currentPlayer = 7;
+    int32 committedPot = 8;
+    int32 fullPot = 9;
+    int32 betting = 10;
+    int32 minRaise = 11;
+    int64 beginActionTime = 12;
+    int64 timeOutAt = 13;
+    map<string, int32> winners = 14;
+}
+
+message Game {
+    string id = 1;
+    string ownerId = 2;
+    string status = 3;
+    repeated string seats = 4;
+    map<string, GamePlayer> players = 5;
+    repeated string onlinePlayers = 6;
+    int32 dealerSeat = 7;
+    GameSettings settings = 8;
+    GameRequests requests = 9;
+    int64 time = 10;
+    GameHand hand = 11;
+}
+
+message GameHandUpdate {
+    string id = 1;
+    int64 time = 2;
+    optional GameHand hand = 3;
+}

@@ -1,0 +1,1 @@
+node_modules/protobufjs-cli/bin/pbjs -t static-module -o ./proto/game.proto.js ./proto/game.proto

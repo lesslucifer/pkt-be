@@ -33,20 +33,20 @@ export class AppApiResponse {
 
     success: boolean;
     httpCode?: number;
-    headers?: {[header: string]: string} = {}
+    headers?: { [header: string]: string } = {}
     err?: IAppErrorResponse;
     data?: any;
 }
 
 export class AppLogicError extends Error {
     constructor(msg: string, public httpCode?: number, public params?: any) {
-        super(msg); 
+        super(msg);
     }
 }
 
 export class BizLogicError extends Error {
     constructor(msg: string, public code?: number, public params?: any) {
-        super(msg); 
+        super(msg);
     }
 }
 
@@ -75,7 +75,7 @@ export class Hera {
         }, <any>{});
     }
 
-    notEmpty(data: any, isEmpty: (any)  => boolean = this.isEmpty, deep = false) {
+    notEmpty(data: any, isEmpty: (any) => boolean = this.isEmpty, deep = false) {
         if (_.isArray(data)) {
             const filteredData = data.filter(d => !isEmpty(d));
             if (deep) {
@@ -101,10 +101,10 @@ export class Hera {
     }
 
     isEmpty(obj?: any): boolean {
-        return  ((obj == null || _.isNaN(obj) || obj === false) ||
-                (_.isString(obj) && obj.length == 0) ||
-                ((obj instanceof Array) && obj.length == 0) ||
-                ((obj instanceof Object) && Object.keys(obj).length == 0));
+        return ((obj == null || _.isNaN(obj) || obj === false) ||
+            (_.isString(obj) && obj.length == 0) ||
+            ((obj instanceof Array) && obj.length == 0) ||
+            ((obj instanceof Object) && Object.keys(obj).length == 0));
     }
 
     isURL(s: string) {
@@ -139,13 +139,13 @@ export class Hera {
         this.TimeTable.delete(label);
         if (!unix) return;
 
-        logger.info(`${label}: ${now - unix}ms`)        
+        logger.info(`${label}: ${now - unix}ms`)
     }
 
     async unboxPromise<T>(val: BoxedPromise<T>) {
         return (val instanceof Promise) ? await val : val;
     }
-    
+
     arrToMap<T, K, V>(arr: ArrayLike<T>, key: (t: T, idx?: number) => K, value: (t: T, idx?: number) => V): Map<K, V> {
         const map = new Map<K, V>();
         for (let i = 0; i < arr.length; ++i) {
@@ -161,7 +161,7 @@ export class Hera {
 
     extractString(str: string, from: string, to: string, withMarks: boolean = false) {
         if (!str) return undefined;
-        
+
         let start = str.indexOf(from);
         if (start < 0) return undefined;
 
@@ -172,7 +172,7 @@ export class Hera {
             start = start + from.length;
             end = end - to.length;
         }
-        
+
         return str.substr(start, end - start + 1);
     }
 
@@ -221,19 +221,19 @@ export class Hera {
         if (_.isArray(val)) {
             if (val.length == 0) return undefined;
             if (val.length == 1) return _.first(val);
-            return {$in: val};
+            return { $in: val };
         }
 
         return val;
     }
 
-    arrToObj<T, V>(arr: T[], keyMap: (t: T, idx: number) => string, valMap: (t: T, idx: number) => V): {[k: string]: V} {
+    arrToObj<T, V>(arr: T[], keyMap: (t: T, idx: number) => string, valMap: (t: T, idx: number) => V): { [k: string]: V } {
         if (!arr) return {};
         const ret = {};
         for (let i = 0; i < arr.length; ++i) {
             ret[keyMap(arr[i], i)] = valMap(arr[i], i);
         }
-        
+
         return ret;
     }
 
@@ -265,10 +265,10 @@ export class Hera {
                     return err
                 }
             })))
-    
+
             chIdx += chunk.length
         }
-    
+
         return result
     }
 
@@ -317,6 +317,11 @@ export class Hera {
 
     rotate<T>(arr: T[], r: number): T[] {
         return _.range(arr.length).map(i => arr[(i + arr.length + r) % arr.length])
+    }
+
+    bufferToBase64(buffer: ArrayBuffer) {
+        // const binary = String.fromCharCode.apply(null, buffer);
+        return Buffer.from(buffer).toString('base64');
     }
 }
 

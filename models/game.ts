@@ -187,7 +187,7 @@ export class Game {
             player.buyOut += player.stack
             player.stack = 0
         }
-        this.seats[seat] = null
+        this.seats[seat] = ''
     }
 
     start() {
@@ -207,7 +207,7 @@ export class Game {
             if (p.stack <= 0) {
                 const idx = this.seats.indexOf(p.id)
                 if (idx >= 0) {
-                    this.seats[idx] = null
+                    this.seats[idx] = ''
                 }
             }
         })
@@ -307,35 +307,6 @@ export class Game {
         if (dirty && updateLastActive) {
             this.lastActive = moment()
         }
-    }
-
-    sendUpdateToClients() {
-        if (!this.isDirty && !this.hand?.isDirty) return
-
-        if (this.isDirty) {
-            RealtimeServ.roomBroadcast(this.id, 'update_game', this.toJSON())
-        }
-        else {
-            RealtimeServ.roomBroadcast(this.id, 'update_hand', {
-                id: this.id,
-                time: Date.now(),
-                hand: this.hand?.toJSON()
-            })
-        }
-
-        this.isDirty = false
-        this.hand?.markDirty(false)
-    }
-
-    sendMessage(msg: IGameMessage) {
-        RealtimeServ.roomBroadcast(this.id, 'message', msg)
-    }
-
-    connect(playerId: string, socketId: string) {
-        RealtimeServ.joinRoom(this.id, socketId)
-        RealtimeServ.bind(`${this.id}:${playerId}`, socketId)
-        RealtimeServ.bind(this.id, socketId)
-        this.markDirty(true, false)
     }
 }
 

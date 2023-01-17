@@ -2,9 +2,10 @@ import _ from "lodash";
 import moment from "moment";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
-import { Game, GamePlayer, GameStatus } from "../models/game";
+import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
+import proto from '../proto/game.proto';
+import hera from "../utils/hera";
 import RealtimeServ from "./realtime.serv";
-import fs = require('fs-extra')
 
 export class GameService {
     get DB() {
@@ -34,6 +35,7 @@ export class GameService {
         if (_.isEmpty(js)) return null
         const game = new Game(js.id, js.ownerId)
         Object.assign(game, js)
+        game.seats = game.seats.map(s => _.isNil(s) ? '' : s)
         game.lastActive = moment(js.lastActive)
         game.lastSave = moment(js.lastSave)
         Object.assign(game, {
@@ -79,8 +81,47 @@ export class GameService {
         }
     }
 
+    async sendUpdateToClients(game: Game) {
+        if (!game.isDirty && !game.hand?.isDirty) return
+
+        try {
+            if (game.isDirty) {
+                const data = game.toJSON()
+                RealtimeServ.roomBroadcast(game.id, 'update_game', proto.Game.encode(data).finish())
+            }
+            else {
+                const data = {
+                    id: game.id,
+                    time: Date.now(),
+                    hand: game.hand?.toJSON()
+                }
+                RealtimeServ.roomBroadcast(game.id, 'update_hand', proto.GameHandUpdate.encode(data).finish())
+            }
+        }
+        catch (err) {
+            console.log(`Send updates to client for game ${game.id} got error`)
+            console.log(JSON.stringify(game))
+            console.log(err)
+        }
+
+        game.isDirty = false
+        game.hand?.markDirty(false)
+    }
+
+    sendMessage(gameId: string, msg: IGameMessage) {
+        RealtimeServ.roomBroadcast(gameId, 'message', msg)
+    }
+
+    playerConnect(game: Game, playerId: string, socketId: string) {
+        RealtimeServ.joinRoom(game.id, socketId)
+        RealtimeServ.bind(`${game.id}:${playerId}`, socketId)
+        RealtimeServ.bind(game.id, socketId)
+        game.markDirty(true, false)
+    }
+
     async startup() {
         await this.load()
+
         setInterval(async () => {
             try {
                 await this.save()
@@ -127,7 +168,7 @@ export class GameService {
             this.games.forEach(g => {
                 if (!g) return
                 try {
-                    g.sendUpdateToClients()
+                    this.sendUpdateToClients(g)
                 }
                 catch (err) {
                     console.log(`Game ${g.id} send update to clients error`)

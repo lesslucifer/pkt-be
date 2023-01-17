@@ -5,6 +5,7 @@ import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../mo
 import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
+import GameServ from "../serv/game.serv";
 import { ValidBody } from "../utils/decors";
 import { AppLogicError } from "../utils/hera";
 
@@ -255,7 +256,7 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     @AuthServ.authGame()
     async bindSocket(@PlayerId() playerId: string, @CurrentGame() game: Game, @Params('socketId') socketId: string) {
-        game?.connect(playerId, socketId)
+        GameServ.playerConnect(game, playerId, socketId)
         return HC.SUCCESS
     }
 
@@ -267,7 +268,7 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     @AuthServ.authGame()
     async sendMessage(@PlayerId() playerId: string, @CurrentGame() game: Game, @Body() msg: any) {
-        game.sendMessage({
+        GameServ.sendMessage(game.id, {
             author: playerId,
             ...msg
         })
