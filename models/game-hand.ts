@@ -73,11 +73,16 @@ export interface GameHandWinner {
 
 export class GameHand {
     id: number
+
     deck: Deck = new Deck()
+    publicSeed: string
+    privateSeed: string
+    shuffleTime: number
+
     playersMap: Map<string, HandPlayer> = new Map()
     playerCards: _.Dictionary<Card[]> = {}
 
-    roundPlayers: number[]
+    roundPlayers: number[] = []
     status: GameHandStatus = GameHandStatus.READY
     round: HandRound = HandRound.PRE_FLOP
     communityCards: Card[] = []
@@ -93,6 +98,8 @@ export class GameHand {
 
     constructor(private game: Game, private players: HandPlayer[]) {
         this.id = game.nextHandId()
+        this.publicSeed = game.seed
+        this.privateSeed = shortid.generate()
         players.forEach(p => this.playersMap.set(p.id, p))
     } 
 
@@ -139,7 +146,8 @@ export class GameHand {
         if (this.status !== GameHandStatus.READY) throw new Error(`Cannot deal, invalid status`)
         // check the players is not dealt
         
-        this.deck.shuffle()
+        this.shuffleTime = Date.now()
+        this.deck.shuffle(this.shuffleTime, [this.game.seed, this.privateSeed])
         this.players.forEach(p => {
             this.playerCards[p.id] = [this.deck.deal(), this.deck.deal()]
         })

@@ -1,4 +1,6 @@
 import _ from "lodash";
+import sha256 from 'crypto-js/sha256'
+import { shuffle, MersenneTwister19937 } from 'random-js'
 
 export enum CardSuit {
     HEART = 'H',
@@ -22,18 +24,21 @@ export function getCardDesc(card: Card) {
 
 export class Deck {
     cards: Card[] = [...BASE_CARDS]
-    dealtCards: Card[] = []
     dealtIndex = 0
 
-    shuffle() {
-        // TODO: shuffle
-        this.cards = _.shuffle(this.cards)
+    constructor() {
+    }
+
+    shuffle(time: number, seeds: string[]) {
+        const nonce = [time, ...seeds].join(':')
+        const hash = sha256(nonce);
+        const randomizer = MersenneTwister19937.seedWithArray(hash.words)
+        this.cards = shuffle(randomizer, this.cards)
     }
 
     deal(): Card {
         if (this.dealtIndex >= this.cards.length) throw new Error(`Deck overflow`)
         const card = this.cards[this.dealtIndex++]
-        this.dealtCards.push(card)
         return card
     }
 }

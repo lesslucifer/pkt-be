@@ -1,5 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
+import shortid from "shortid";
 import HC from "../glob/hc";
 import RealtimeServ from "../serv/realtime.serv";
 import { AppLogicError } from "../utils/hera";
@@ -42,9 +43,11 @@ export class Game {
     constructor(id: string, ownerId: string) {
         this.id = id;
         this.ownerId = ownerId;
+        this.seed = shortid.generate()
     }
 
     id: string;
+    seed: string
     ownerId: string;
     status: GameStatus = GameStatus.STOPPED
     players: Map<string, GamePlayer> = new Map()
