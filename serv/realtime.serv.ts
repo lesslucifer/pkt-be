@@ -24,6 +24,8 @@ export class RealtimeService {
         this.io.on('connection', (socket) => {
             this.setupNewConnection(socket)
         })
+
+        console.log(`Socket IO initialized`)
     }
 
     setupNewConnection(socket: SocketIOConnection) {

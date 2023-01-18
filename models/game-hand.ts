@@ -60,6 +60,7 @@ export interface IPlayerAction {
 
 export enum GameHandStatus {
     READY = 'R',
+    TRANSITION = 'T',
     PLAYING = 'P',
     AUTO = 'A',
     SHOWING_DOWN = 'SD',
@@ -192,10 +193,11 @@ export class GameHand {
     }
 
     moveNext() {
-        if (this.status !== GameHandStatus.PLAYING && this.status !== GameHandStatus.AUTO) throw new Error(`The hand is not playing`)
+        if (this.status !== GameHandStatus.TRANSITION) throw new Error(`The hand is not in transitioning status`)
         if (this.round === HandRound.DONE) throw new Error(`The hand is over`)
         if (!this.roundPlayers.length) throw new Error(`Invalid hand state. No current player??`)
 
+        this.status = GameHandStatus.PLAYING
         this.roundPlayers.shift() // TODO: performance
         this.setupAutoActionTimes()
         if (this.roundPlayers.length <= 0) {
@@ -412,6 +414,7 @@ export class GameHand {
         }
 
         if (!this.checkTerminatedHand()) {
+            this.status = GameHandStatus.TRANSITION
             setTimeout(() => {
                 try {
                     this.moveNext()
