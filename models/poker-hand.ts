@@ -81,7 +81,7 @@ export class PokerHand {
             return [...cards.filter(c => c.rank === result.values[0]), ...cards.filter(c => c.rank === result.values[1]).slice(0, 2)]
         }
         else if (result.rank === PokerHandRank.FLUSH) {
-            return _.sortBy(cards.filter(c => c.suit === result.suit), c => c.rank).slice(0, 5)
+            return _.sortBy(cards.filter(c => c.suit === result.suit), c => c.rank, c => -c.rank).slice(0, 5)
         }
         else if (result.rank === PokerHandRank.STRAIGHT) {
             return _.uniqBy(cards.filter(c => result.values[0] - 4 <= c.rank && c.rank <= result.values[0]), c => c.rank)
