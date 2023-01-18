@@ -18,6 +18,9 @@ export class Program {
     static server: express.Express;
 
     public static async setup() {
+        console.log(`Start setting the application`)
+        console.log(`Environment`, JSON.stringify(ENV, null, 2))
+
         await CONN.configureConnections(ENV);
         await runMigration(CONN.MONGO);
 
