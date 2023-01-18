@@ -263,7 +263,7 @@ class GamesRouter extends ExpressRouter {
     @POST({path: "/messages"})
     @ValidBody({
         '+@id': 'string',
-        '+@content': 'string'
+        '+@content': 'string|len<=1000'
     })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
