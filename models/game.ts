@@ -102,7 +102,7 @@ export class Game {
     requestSeat(playerId: string, seat: number, buyIn: number, name: string) {
         if (seat < 0 || seat > 9) throw new Error(`Invalid seat index`)
         if (this.seats[seat]) throw new Error(`This seat is taken already`)
-        if (this.requestSeat[playerId]) throw new Error(`Player has requested a seat`)
+        if (this.requests.seatIn[playerId]) throw new Error(`Player has requested a seat`)
         if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
         if (!name) throw new AppLogicError(`Name cannot be empty`)
         if (Array.from(this.players.values()).find(p => p.id !== playerId && p.name === name)) {

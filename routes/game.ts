@@ -133,7 +133,7 @@ class GamesRouter extends ExpressRouter {
     @PUT({path: "/seats/:seat"})
     @ValidBody({
         '+@buyIn': 'integer',
-        '+@name': 'string|len>=2|len<=10'
+        '+@name': 'string|len>=2|len<=25'
     })
     @AuthServ.authGame()
     @AuthServ.authPlayer()
