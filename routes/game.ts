@@ -1,5 +1,6 @@
-import { Body, ExpressRouter, GET, Params, POST, PUT } from "express-router-ts";
+import { Body, ExpressRouter, GET, Params, POST, PUT, Query } from "express-router-ts";
 import _ from "lodash";
+import { ObjectId } from "mongodb";
 import HC from "../glob/hc";
 import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../models/game";
 import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
@@ -15,6 +16,23 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGame()
     async getCurrentGame(@CurrentGame() game: Game) {
         return game.toJSON()
+    }
+
+    @GET({path: "/hands"})
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async getHands(@CurrentGame() game: Game, @Query() query: any) {
+        const pageSize = 50
+        const page = query.page ?? 0
+        const offset = page * pageSize
+        const data = await GameServ.HandModel.find({
+            gameId: game.id
+        }).limit(pageSize).sort({id: 'desc'}).skip(offset).toArray()
+        const total = await GameServ.HandModel.countDocuments({gameId: game.id})
+        return {
+            data,
+            total
+        }
     }
 
     @PUT({path: "/ownerId"})

@@ -77,6 +77,8 @@ export class Game {
     lastActive: moment.Moment = moment()
     lastSave: moment.Moment = moment(0)
 
+    unsavedHands: GameHand[] = []
+
     nextHandId() {
         return this.handCount++
     }
@@ -241,6 +243,7 @@ export class Game {
     }
 
     handOver() {
+        this.hand && this.unsavedHands.push(this.hand)
         this.performNoHandActions()
         this.startNewHand()
         this.markDirty() 

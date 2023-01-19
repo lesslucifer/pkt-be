@@ -1,5 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
+import { AnyBulkWriteOperation } from "mongodb";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
 import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
@@ -8,8 +9,12 @@ import hera from "../utils/hera";
 import RealtimeServ from "./realtime.serv";
 
 export class GameService {
-    get DB() {
+    get GameModel() {
         return CONN.MONGO.collection('game')
+    }
+
+    get HandModel() {
+        return CONN.MONGO.collection('hand')
     }
 
     private games = new Map<string, Game>()
@@ -18,13 +23,13 @@ export class GameService {
         const game = new Game(shortid.generate(), playerId)
         game.lastSave = game.lastActive
         this.games.set(game.id, game)
-        this.DB.insertOne(game.dataJSON())
+        this.GameModel.insertOne(game.dataJSON())
         return game
     }
 
     async getGame(gameId: string) {
         if (!this.games.has(gameId)) { 
-            const json = await this.DB.findOne({ id: gameId })
+            const json = await this.GameModel.findOne({ id: gameId })
             this.games.set(gameId, this.gameFromJSON(json))
         }
 
@@ -54,21 +59,30 @@ export class GameService {
 
     private async saveGames(games: Game[]) {
         if (games.length <= 0) return
-        games.forEach(g => g.lastSave = g.lastActive)
         console.log(`Save ${games.length} games`)
-        return await this.DB.bulkWrite(games.map(g => ({
+
+        // TODO: Batch & chunk writes
+        games.forEach(g => g.lastSave = g.lastActive)
+        await this.GameModel.bulkWrite(games.map(g => ({
             updateOne: {
                 filter: { id: g.id },
                 update: { $set: g.dataJSON() },
                 upsert: true
             }
         })))
+
+        const unsavedHands = games.flatMap(g => g.unsavedHands)
+        if (unsavedHands.length > 0) {
+            console.log(`Save ${unsavedHands.length} hands`)
+            await this.HandModel.insertMany(unsavedHands.map(h => h.persistJSON()))
+            games.forEach(g => g.unsavedHands = [])
+        }
     }
 
     async load() {
         this.games.clear()
         try {
-            const playingGames = await this.DB.find({ status: 'PLAYING' }).toArray()
+            const playingGames = await this.GameModel.find({ status: 'PLAYING' }).toArray()
             const games: Game[] = playingGames.map(js => this.gameFromJSON(js))
     
             games.forEach(g => {
@@ -81,9 +95,10 @@ export class GameService {
         }
     }
 
-    async sendUpdateToClients(game: Game) {
+    sendUpdateToClients(game: Game) {
         if (!game.isDirty && !game.hand?.isDirty) return
 
+        console.log('Start sending updates to client...')
         try {
             if (game.isDirty) {
                 const data = game.toJSON()
@@ -95,7 +110,10 @@ export class GameService {
                     time: Date.now(),
                     hand: game.hand?.toJSON()
                 }
-                RealtimeServ.roomBroadcast(game.id, 'update_hand', proto.GameHandUpdate.encode(data).finish())
+                const encoded = proto.GameHandUpdate.encode(data).finish()
+                if (!game.isDirty) {
+                    RealtimeServ.roomBroadcast(game.id, 'update_hand', encoded)
+                }
             }
         }
         catch (err) {
@@ -104,8 +122,11 @@ export class GameService {
             console.log(err)
         }
 
+        if (game.hand?.isDirty) {
+            game.hand?.unmarkDirty(proto.GameHand.encode(game.hand.toJSON()).finish())
+        }
         game.isDirty = false
-        game.hand?.markDirty(false)
+        console.log('End sending updates to client...')
     }
 
     sendMessage(gameId: string, msg: IGameMessage) {
@@ -175,7 +196,7 @@ export class GameService {
                     console.log(err)
                 }
             })
-        }, 200)
+        }, 500)
 
         setInterval(() => {
             const time = Date.now()

@@ -1,9 +1,25 @@
 import _ from "lodash";
 import shortid from "shortid";
 import hera, { AppLogicError } from "../utils/hera";
-import { Card, Deck, MASKED_CARD } from "./card";
+import { Card, Deck } from "./card";
 import { Game, GamePlayer, GameStatus } from "./game";
 import { PokerHand, PokerHandResult } from "./poker-hand";
+
+export enum HandStepType {
+    NEW_GAME = 0,
+    NEW_ROUND,
+    BET,
+    FOLD,
+    SHOW_DOWN
+}
+
+export interface IHandStep {
+    type: HandStepType
+    player?: string
+    amount?: number
+    round?: HandRound
+    cards?: Card[]
+}
 
 export enum HandPlayerStatus {
     PLAYING = 'P',
@@ -95,7 +111,16 @@ export class GameHand {
     betting = 0
     minRaise = 0
     
-    isDirty = true
+    private dirty = true
+    steps: IHandStep[] = []
+    logs: {
+        data: ArrayBuffer
+        steps: IHandStep[]
+    }[] = []
+
+    get isDirty() {
+        return this.dirty
+    }
 
     constructor(private game: Game, private players: HandPlayer[]) {
         this.id = game.nextHandId()
@@ -108,8 +133,22 @@ export class GameHand {
         return this.committedPot + _.sumBy(this.players, p => p.betting)
     }
 
-    markDirty(dirty = true) {
-        this.isDirty = dirty
+    markDirty(...steps: IHandStep[]) {
+        this.dirty = true
+        if (steps) {
+            this.steps.push(...steps)
+        }
+    }
+
+    unmarkDirty(data: ArrayBuffer) {
+        this.dirty = false
+        if (this.steps.length > 0) {
+            this.logs.push({
+                steps: [...this.steps],
+                data
+            })
+            this.steps.length = 0
+        }
     }
 
     setupAutoActionTimes() {
@@ -127,6 +166,10 @@ export class GameHand {
 
         this.status = GameHandStatus.PLAYING
 
+        this.markDirty({
+            type: HandStepType.NEW_GAME
+        })
+
         this.roundPlayers = [0]
         this.bet(this.players[0], this.game.settings.smallBlind)
         this.roundPlayers = [1]
@@ -139,8 +182,6 @@ export class GameHand {
             this.minRaise = this.game.settings.bigBlind
             this.setupAutoActionTimes()
         }
-
-        this.markDirty()
     }
 
     deal() {
@@ -189,7 +230,11 @@ export class GameHand {
         this.betting = Math.max(this.betting, amount)
 
         player.betting = Math.min(amount, player.stack)
-        this.markDirty()
+        this.markDirty({
+            type: HandStepType.BET,
+            player: player.id,
+            amount: player.betting
+        })
     }
 
     moveNext() {
@@ -223,7 +268,11 @@ export class GameHand {
 
         this.dealNextRound()
         this.setupAutoActionTimes()
-        this.markDirty()
+        this.markDirty({
+            type: HandStepType.NEW_ROUND,
+            round: this.round,
+            cards: this.round === HandRound.FLOP ? this.communityCards : [_.last(this.communityCards)]
+        })
     }
 
     commitPot() {
@@ -337,7 +386,9 @@ export class GameHand {
             }
         }, this.game.settings.showDownTime)
         
-        this.markDirty()
+        this.markDirty({
+            type: HandStepType.SHOW_DOWN
+        })
     }
 
     closeHand() {
@@ -408,6 +459,10 @@ export class GameHand {
         else if (action.action === ActionType.FOLD) {
             this.clearAutoActionTimes()
             hp.status = HandPlayerStatus.FOLDED
+            this.markDirty({
+                type: HandStepType.FOLD,
+                player: playerId
+            })
         }
         else if (action.action === ActionType.TIME) {
             // TODO: add extra time
@@ -468,6 +523,23 @@ export class GameHand {
             beginActionTime: this.beginActionTime,
             timeOutAt: this.timeOutAt,
             winners: this.winners,
+            steps: this.steps
+        }
+    }
+
+    persistJSON() {
+        return {
+            gameId: this.game.id,
+            id: this.id,
+            publicSeed: this.publicSeed,
+            privateSeed: this.privateSeed,
+            shuffleTime: this.shuffleTime,
+            playerNames: _.fromPairs(this.players.map(p => [p.id, this.game.players.get(p.id).name])),
+            yourCards: _.fromPairs(this.players.map(p => [p.id, this.playerCards[p.id]])),
+            playerCards: this.players.filter(p => p.showCard).map(p => ({id: p.id, cards: this.playerCards[p.id]})),
+            communityCards: this.communityCards,
+            winners: this.winners,
+            logs: this.logs
         }
     }
 

@@ -2442,6 +2442,372 @@
         return PlayerCards;
     })();
     
+    $root.HandStep = (function() {
+    
+        /**
+         * Properties of a HandStep.
+         * @exports IHandStep
+         * @interface IHandStep
+         * @property {number|null} [type] HandStep type
+         * @property {number|null} [amount] HandStep amount
+         * @property {string|null} [player] HandStep player
+         * @property {string|null} [round] HandStep round
+         * @property {Array.<ICard>|null} [cards] HandStep cards
+         */
+    
+        /**
+         * Constructs a new HandStep.
+         * @exports HandStep
+         * @classdesc Represents a HandStep.
+         * @implements IHandStep
+         * @constructor
+         * @param {IHandStep=} [properties] Properties to set
+         */
+        function HandStep(properties) {
+            this.cards = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+    
+        /**
+         * HandStep type.
+         * @member {number} type
+         * @memberof HandStep
+         * @instance
+         */
+        HandStep.prototype.type = 0;
+    
+        /**
+         * HandStep amount.
+         * @member {number|null|undefined} amount
+         * @memberof HandStep
+         * @instance
+         */
+        HandStep.prototype.amount = null;
+    
+        /**
+         * HandStep player.
+         * @member {string|null|undefined} player
+         * @memberof HandStep
+         * @instance
+         */
+        HandStep.prototype.player = null;
+    
+        /**
+         * HandStep round.
+         * @member {string|null|undefined} round
+         * @memberof HandStep
+         * @instance
+         */
+        HandStep.prototype.round = null;
+    
+        /**
+         * HandStep cards.
+         * @member {Array.<ICard>} cards
+         * @memberof HandStep
+         * @instance
+         */
+        HandStep.prototype.cards = $util.emptyArray;
+    
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+    
+        /**
+         * HandStep _amount.
+         * @member {"amount"|undefined} _amount
+         * @memberof HandStep
+         * @instance
+         */
+        Object.defineProperty(HandStep.prototype, "_amount", {
+            get: $util.oneOfGetter($oneOfFields = ["amount"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * HandStep _player.
+         * @member {"player"|undefined} _player
+         * @memberof HandStep
+         * @instance
+         */
+        Object.defineProperty(HandStep.prototype, "_player", {
+            get: $util.oneOfGetter($oneOfFields = ["player"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * HandStep _round.
+         * @member {"round"|undefined} _round
+         * @memberof HandStep
+         * @instance
+         */
+        Object.defineProperty(HandStep.prototype, "_round", {
+            get: $util.oneOfGetter($oneOfFields = ["round"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Creates a new HandStep instance using the specified properties.
+         * @function create
+         * @memberof HandStep
+         * @static
+         * @param {IHandStep=} [properties] Properties to set
+         * @returns {HandStep} HandStep instance
+         */
+        HandStep.create = function create(properties) {
+            return new HandStep(properties);
+        };
+    
+        /**
+         * Encodes the specified HandStep message. Does not implicitly {@link HandStep.verify|verify} messages.
+         * @function encode
+         * @memberof HandStep
+         * @static
+         * @param {IHandStep} message HandStep message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        HandStep.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.type != null && Object.hasOwnProperty.call(message, "type"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int32(message.amount);
+            if (message.player != null && Object.hasOwnProperty.call(message, "player"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.player);
+            if (message.round != null && Object.hasOwnProperty.call(message, "round"))
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.round);
+            if (message.cards != null && message.cards.length)
+                for (var i = 0; i < message.cards.length; ++i)
+                    $root.Card.encode(message.cards[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+            return writer;
+        };
+    
+        /**
+         * Encodes the specified HandStep message, length delimited. Does not implicitly {@link HandStep.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof HandStep
+         * @static
+         * @param {IHandStep} message HandStep message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        HandStep.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+    
+        /**
+         * Decodes a HandStep message from the specified reader or buffer.
+         * @function decode
+         * @memberof HandStep
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {HandStep} HandStep
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        HandStep.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.HandStep();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.type = reader.int32();
+                        break;
+                    }
+                case 2: {
+                        message.amount = reader.int32();
+                        break;
+                    }
+                case 3: {
+                        message.player = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.round = reader.string();
+                        break;
+                    }
+                case 5: {
+                        if (!(message.cards && message.cards.length))
+                            message.cards = [];
+                        message.cards.push($root.Card.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Decodes a HandStep message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof HandStep
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {HandStep} HandStep
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        HandStep.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+    
+        /**
+         * Verifies a HandStep message.
+         * @function verify
+         * @memberof HandStep
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        HandStep.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.type != null && message.hasOwnProperty("type"))
+                if (!$util.isInteger(message.type))
+                    return "type: integer expected";
+            if (message.amount != null && message.hasOwnProperty("amount")) {
+                properties._amount = 1;
+                if (!$util.isInteger(message.amount))
+                    return "amount: integer expected";
+            }
+            if (message.player != null && message.hasOwnProperty("player")) {
+                properties._player = 1;
+                if (!$util.isString(message.player))
+                    return "player: string expected";
+            }
+            if (message.round != null && message.hasOwnProperty("round")) {
+                properties._round = 1;
+                if (!$util.isString(message.round))
+                    return "round: string expected";
+            }
+            if (message.cards != null && message.hasOwnProperty("cards")) {
+                if (!Array.isArray(message.cards))
+                    return "cards: array expected";
+                for (var i = 0; i < message.cards.length; ++i) {
+                    var error = $root.Card.verify(message.cards[i]);
+                    if (error)
+                        return "cards." + error;
+                }
+            }
+            return null;
+        };
+    
+        /**
+         * Creates a HandStep message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof HandStep
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {HandStep} HandStep
+         */
+        HandStep.fromObject = function fromObject(object) {
+            if (object instanceof $root.HandStep)
+                return object;
+            var message = new $root.HandStep();
+            if (object.type != null)
+                message.type = object.type | 0;
+            if (object.amount != null)
+                message.amount = object.amount | 0;
+            if (object.player != null)
+                message.player = String(object.player);
+            if (object.round != null)
+                message.round = String(object.round);
+            if (object.cards) {
+                if (!Array.isArray(object.cards))
+                    throw TypeError(".HandStep.cards: array expected");
+                message.cards = [];
+                for (var i = 0; i < object.cards.length; ++i) {
+                    if (typeof object.cards[i] !== "object")
+                        throw TypeError(".HandStep.cards: object expected");
+                    message.cards[i] = $root.Card.fromObject(object.cards[i]);
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Creates a plain object from a HandStep message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof HandStep
+         * @static
+         * @param {HandStep} message HandStep
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        HandStep.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.cards = [];
+            if (options.defaults)
+                object.type = 0;
+            if (message.type != null && message.hasOwnProperty("type"))
+                object.type = message.type;
+            if (message.amount != null && message.hasOwnProperty("amount")) {
+                object.amount = message.amount;
+                if (options.oneofs)
+                    object._amount = "amount";
+            }
+            if (message.player != null && message.hasOwnProperty("player")) {
+                object.player = message.player;
+                if (options.oneofs)
+                    object._player = "player";
+            }
+            if (message.round != null && message.hasOwnProperty("round")) {
+                object.round = message.round;
+                if (options.oneofs)
+                    object._round = "round";
+            }
+            if (message.cards && message.cards.length) {
+                object.cards = [];
+                for (var j = 0; j < message.cards.length; ++j)
+                    object.cards[j] = $root.Card.toObject(message.cards[j], options);
+            }
+            return object;
+        };
+    
+        /**
+         * Converts this HandStep to JSON.
+         * @function toJSON
+         * @memberof HandStep
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        HandStep.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+    
+        /**
+         * Gets the default type url for HandStep
+         * @function getTypeUrl
+         * @memberof HandStep
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        HandStep.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/HandStep";
+        };
+    
+        return HandStep;
+    })();
+    
     $root.GameHand = (function() {
     
         /**
@@ -2462,6 +2828,7 @@
          * @property {number|Long|null} [beginActionTime] GameHand beginActionTime
          * @property {number|Long|null} [timeOutAt] GameHand timeOutAt
          * @property {Object.<string,number>|null} [winners] GameHand winners
+         * @property {Array.<IHandStep>|null} [steps] GameHand steps
          */
     
         /**
@@ -2477,6 +2844,7 @@
             this.playerCards = [];
             this.communityCards = [];
             this.winners = {};
+            this.steps = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -2595,6 +2963,14 @@
          */
         GameHand.prototype.winners = $util.emptyObject;
     
+        /**
+         * GameHand steps.
+         * @member {Array.<IHandStep>} steps
+         * @memberof GameHand
+         * @instance
+         */
+        GameHand.prototype.steps = $util.emptyArray;
+    
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
     
@@ -2665,6 +3041,9 @@
             if (message.winners != null && Object.hasOwnProperty.call(message, "winners"))
                 for (var keys = Object.keys(message.winners), i = 0; i < keys.length; ++i)
                     writer.uint32(/* id 14, wireType 2 =*/114).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 0 =*/16).int32(message.winners[keys[i]]).ldelim();
+            if (message.steps != null && message.steps.length)
+                for (var i = 0; i < message.steps.length; ++i)
+                    $root.HandStep.encode(message.steps[i], writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
             return writer;
         };
     
@@ -2780,6 +3159,12 @@
                         message.winners[key] = value;
                         break;
                     }
+                case 15: {
+                        if (!(message.steps && message.steps.length))
+                            message.steps = [];
+                        message.steps.push($root.HandStep.decode(reader, reader.uint32()));
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -2883,6 +3268,15 @@
                     if (!$util.isInteger(message.winners[key[i]]))
                         return "winners: integer{k:string} expected";
             }
+            if (message.steps != null && message.hasOwnProperty("steps")) {
+                if (!Array.isArray(message.steps))
+                    return "steps: array expected";
+                for (var i = 0; i < message.steps.length; ++i) {
+                    var error = $root.HandStep.verify(message.steps[i]);
+                    if (error)
+                        return "steps." + error;
+                }
+            }
             return null;
         };
     
@@ -2969,6 +3363,16 @@
                 for (var keys = Object.keys(object.winners), i = 0; i < keys.length; ++i)
                     message.winners[keys[i]] = object.winners[keys[i]] | 0;
             }
+            if (object.steps) {
+                if (!Array.isArray(object.steps))
+                    throw TypeError(".GameHand.steps: array expected");
+                message.steps = [];
+                for (var i = 0; i < object.steps.length; ++i) {
+                    if (typeof object.steps[i] !== "object")
+                        throw TypeError(".GameHand.steps: object expected");
+                    message.steps[i] = $root.HandStep.fromObject(object.steps[i]);
+                }
+            }
             return message;
         };
     
@@ -2989,6 +3393,7 @@
                 object.players = [];
                 object.playerCards = [];
                 object.communityCards = [];
+                object.steps = [];
             }
             if (options.objects || options.defaults)
                 object.winners = {};
@@ -3060,6 +3465,11 @@
                 object.winners = {};
                 for (var j = 0; j < keys2.length; ++j)
                     object.winners[keys2[j]] = message.winners[keys2[j]];
+            }
+            if (message.steps && message.steps.length) {
+                object.steps = [];
+                for (var j = 0; j < message.steps.length; ++j)
+                    object.steps[j] = $root.HandStep.toObject(message.steps[j], options);
             }
             return object;
         };

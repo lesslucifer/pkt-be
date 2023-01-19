@@ -56,6 +56,14 @@ message PlayerCards {
     repeated Card cards = 2;
 }
 
+message HandStep {
+    int32 type = 1;
+    optional int32 amount = 2;
+    optional string player = 3;
+    optional string round = 4;
+    repeated Card cards = 5;
+}
+
 message GameHand {
     int32 id = 1;
     repeated HandPlayer players = 2;
@@ -71,6 +79,7 @@ message GameHand {
     int64 beginActionTime = 12;
     int64 timeOutAt = 13;
     map<string, int32> winners = 14;
+    repeated HandStep steps = 15;
 }
 
 message Game {
