@@ -1,10 +1,10 @@
 import _ from "lodash";
 import moment from "moment";
 import shortid from "shortid";
-import HC from "../glob/hc";
 import RealtimeServ from "../serv/realtime.serv";
 import { AppLogicError } from "../utils/hera";
-import { GameHand, GameHandStatus, HandPlayer } from "./game-hand"
+import { GameHand, GameHandStatus, HandPlayer } from "./game-hand";
+import { GameLogAction, gameLogUpdateFields, IGameLog, PersistedLogActions } from "./game-log";
 
 export enum GameStatus {
     STOPPED = 'STOPPED',
@@ -73,11 +73,14 @@ export class Game {
         stack: {}
     }
 
-    isDirty = true
+    dirtyFields = new Set<string>()
+    get isDirty() { return this.dirtyFields.size > 0 }
+
     lastActive: moment.Moment = moment()
     lastSave: moment.Moment = moment(0)
 
     unsavedHands: GameHand[] = []
+    logs: IGameLog[] = []
 
     nextHandId() {
         return this.handCount++
@@ -114,25 +117,44 @@ export class Game {
         this.addPlayer(playerId)
 
         const p = this.players.get(playerId)
+        const orgStack = p.stack
         p.name = name
         p.buyOut += p.stack
         p.buyIn += buyIn
         p.stack = buyIn
+
+        this.addLogs([{
+            action: GameLogAction.REQUEST_SEAT_IN,
+            player: playerId,
+            buyIn: buyIn,
+            buyOut: p.buyOut,
+            stack: orgStack,
+            name,
+            seat
+        }])
 
         if (this.hand) {
             this.requests.seatIn[playerId] = seat
         }
         else {
             this.seats[seat] = p.id
+            this.addLogs([{
+                action: GameLogAction.SEAT_IN,
+                player: playerId,
+                seat
+            }])
         }
 
-        this.markDirty()
     }
     
     requestLeaveSeat(player: GamePlayer) {
         if (this.requests.seatIn[player.id]) {
+            this.addLogs([{
+                action: GameLogAction.REQUEST_SEAT_OUT,
+                player: player.id,
+                seat: this.requests.seatIn[player.id]
+            }])
             delete this.requests.seatIn[player.id]
-            this.markDirty(true, false)
             return
         }
 
@@ -142,11 +164,14 @@ export class Game {
 
         if (!this.hand) {
             this.cleanUpAndLeaveSeat(seat)
-            this.markDirty()
         }
         else {
             this.requests.seatOut.push(seat)
-            this.markDirty(true, false)
+            this.addLogs([{
+                action: GameLogAction.REQUEST_SEAT_OUT,
+                player: player.id,
+                seat
+            }])
         }
     }
 
@@ -154,18 +179,27 @@ export class Game {
         if (!this.players.has(playerId)) throw new Error(`Cannot request udpate stack! Player not found`)
         if (req.type === "SET" && req.amount <= 0) throw new Error(`Cannot request udpate stack! Set stack amount must be greater than zero`)
         if (req.type === "ADD" && req.amount === 0) {
+            this.addLogs([{
+                action: GameLogAction.REQUEST_STACK_ADD,
+                player: playerId,
+                amount: req.amount
+            }])
             delete this.requests.stack[playerId]
-            this.markDirty(true, false)
             return
         }
         if (!this.hand) return this.processStackUpdate(playerId, req)
         this.requests.stack[playerId] = req
-        this.markDirty(true, false)
+        this.addLogs([{
+            action: req.type === "ADD" ? GameLogAction.REQUEST_STACK_ADD : GameLogAction.REQUEST_STACK_SET,
+            player: playerId,
+            amount: req.amount
+        }])
     }
 
     processStackUpdate(playerId: string, req: IStackRequest) {
         const player = this.players.get(playerId)
         if (!player) return
+
         if (req.type === "ADD") {
             if (req.amount >= 0) {
                 player.buyIn += req.amount
@@ -181,18 +215,35 @@ export class Game {
             player.buyIn += req.amount
             player.stack = req.amount
         }
-        this.markDirty()
+        
+        this.addLogs([{
+            action: req.type === "ADD" ? GameLogAction.STACK_ADD : GameLogAction.STACK_SET,
+            player: playerId,
+            stack: player.stack,
+            buyIn: player.buyIn,
+            buyOut: player.buyOut,
+            amount: req.amount
+        }])
     }
 
     cleanUpAndLeaveSeat(seat: number) {
         const pid = this.seats[seat]
         if (!pid) return
         const player = this.players.get(pid)
+        const orgStack = player.stack
         if (player) {
             player.buyOut += player.stack
             player.stack = 0
         }
         this.seats[seat] = ''
+
+        this.addLogs([{
+            action: GameLogAction.SEAT_OUT,
+            player: player.id,
+            buyOut: player.buyOut,
+            stack: orgStack,
+            seat
+        }])
     }
 
     start() {
@@ -222,7 +273,7 @@ export class Game {
         if (readyPlayers.length < 2 || !onlinePlayers.length) {
             this.status = GameStatus.STOPPED
             this.hand = null
-            this.markDirty()
+            this.addLogs([{action: GameLogAction.GAME_STOP}])
             return
         }
 
@@ -239,14 +290,14 @@ export class Game {
         this.hand = hand
 
         hand.start()
-        this.markDirty()
+        this.addLogs([{action: GameLogAction.NEW_HAND, handId: hand.id}])
     }
 
     handOver() {
         this.hand && this.unsavedHands.push(this.hand)
         this.performNoHandActions()
         this.startNewHand()
-        this.markDirty() 
+        this.addLogs([{action: GameLogAction.HAND_OVER, handId: this.hand?.id}]) 
     }
 
     performNoHandActions() {
@@ -254,6 +305,11 @@ export class Game {
             if (this.seats[seat]) throw new AppLogicError(`The seat is already taken`)
             if (this.seats.includes(pid)) throw new AppLogicError(`Player have seat already`)
             this.seats[seat] = pid
+            this.addLogs([{
+                action: GameLogAction.SEAT_IN,
+                player: pid,
+                seat
+            }])
         })
         this.requests.seatIn = {}
 
@@ -264,17 +320,17 @@ export class Game {
             this.requests.stopGame = false
             this.hand = null
             this.status = GameStatus.STOPPED
+            this.addLogs([{action: GameLogAction.GAME_STOP}])
         }
 
         if (this.requests.settings) {
             this.settings = this.requests.settings
+            this.addLogs([{action: GameLogAction.UPDATE_SETTINGS, settings: this.settings}])
             this.requests.settings = null
         }
 
         Object.entries(this.requests.stack).forEach(([pid, req]) => this.processStackUpdate(pid, req))
         this.requests.stack = {}
-
-        this.markDirty()
     }
 
     dataJSON() {
@@ -304,15 +360,28 @@ export class Game {
             settings: this.settings,
             requests: this.requests,
             time: Date.now(),
-            hand: this.hand?.toJSON()
+            hand: this.hand?.toJSON(),
+            noHand: !this.hand
         }
     }
 
-    markDirty(dirty = true, updateLastActive = true) {
-        this.isDirty = dirty
-        if (dirty && updateLastActive) {
+    addLogs(logs: IGameLog[]) {
+        const now = Date.now()
+        logs.forEach(log => {
+            log.time = now
+            gameLogUpdateFields(log.action).forEach(f => this.dirtyFields.add(f))
+            if (log.action !== GameLogAction.SOCKET_IN && log.action !== GameLogAction.SOCKET_OUT) {
+                this.logs.push(log)
+            }
+        })
+
+        if (logs.find(log => PersistedLogActions.has(log.action))) {
             this.lastActive = moment()
         }
+    }
+
+    unmarkDirty() {
+        this.dirtyFields.clear()
     }
 }
 

@@ -1,5 +1,4 @@
 import { ExpressRouter, POST } from "express-router-ts";
-import { GamePlayer } from "../models/game";
 import AuthServ from "../serv/auth.serv";
 import { PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";

@@ -1,6 +1,6 @@
 import * as mongodb from 'mongodb';
 
-const MIGRATIONS = [initGameIndexes, initHandIndexes, initHandIndexes2, initHandIndexes3];
+const MIGRATIONS = [initGameIndexes, initHandIndexes, initHandIndexes2, initHandIndexes3, initGameLogsIndexes];
 
 export async function runMigration(db: mongodb.Db) {
     const dbConfig = await db.collection('config').findOne({ type: 'db' });
@@ -42,3 +42,10 @@ async function initHandIndexes3(db: mongodb.Db) {
     await dropAllIndexesOfKey(db.collection('hand'), 'handId')
     await db.collection('hand').createIndex({gameId: 'hashed'})
 }
+
+async function initGameLogsIndexes(db: mongodb.Db) {
+    await db.collection('game_logs').createIndex({id: 'hashed'})
+    await db.collection('game_logs').createIndex({id: 1, 'logs.action': 1})
+    await db.collection('game_logs').createIndex({id: 1, 'logs.time': 1})
+}
+

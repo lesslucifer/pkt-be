@@ -10,7 +10,8 @@ export enum HandStepType {
     NEW_ROUND,
     BET,
     FOLD,
-    SHOW_DOWN
+    SHOW_DOWN,
+    SHOW_CARDS
 }
 
 export interface IHandStep {
@@ -507,7 +508,11 @@ export class GameHand {
         }
     }
 
-    toJSON() {
+    resume() {
+        if (this.timeOutAt > 0) this.setupAutoActionTimes()
+    }
+
+    toJSON(includeSteps = false) {
         return {
             id: this.id,
             players: this.players,
@@ -523,7 +528,7 @@ export class GameHand {
             beginActionTime: this.beginActionTime,
             timeOutAt: this.timeOutAt,
             winners: this.winners,
-            steps: this.steps
+            ...(includeSteps ? {steps: this.steps} : {})
         }
     }
 

@@ -1,11 +1,10 @@
 import _ from "lodash";
 import moment from "moment";
-import { AnyBulkWriteOperation } from "mongodb";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
 import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
+import { GameLogAction } from "../models/game-log";
 import proto from '../proto/game.proto';
-import hera from "../utils/hera";
 import RealtimeServ from "./realtime.serv";
 
 export class GameService {
@@ -17,6 +16,10 @@ export class GameService {
         return CONN.MONGO.collection('hand')
     }
 
+    get GameLogsModel() {
+        return CONN.MONGO.collection('game_logs')
+    }
+
     private games = new Map<string, Game>()
 
     newGame(playerId: string) {
@@ -24,6 +27,7 @@ export class GameService {
         game.lastSave = game.lastActive
         this.games.set(game.id, game)
         this.GameModel.insertOne(game.dataJSON())
+        game.addLogs([{action: GameLogAction.GAME_INIT}])
         return game
     }
 
@@ -46,6 +50,7 @@ export class GameService {
         Object.assign(game, {
             players: new Map(_.map(Object.values(js.players), (p: any) => [p.id, Object.assign(new GamePlayer(p.id, game), p)]))
         })
+        game.addLogs([{action: GameLogAction.GAME_INIT}])
         return game
     }
 
@@ -70,6 +75,18 @@ export class GameService {
                 upsert: true
             }
         })))
+        const gameLogs = games.filter(g => g.logs.length > 0).map(g => {
+            const logs = g.logs
+            g.logs = []
+            return {
+                id: g.id,
+                logs
+            }
+        })
+        if (gameLogs.length > 0) {
+            console.log(`Save ${gameLogs.length} game logs`)
+            await this.GameLogsModel.insertMany(gameLogs)
+        }
 
         const unsavedHands = games.flatMap(g => g.unsavedHands)
         if (unsavedHands.length > 0) {
@@ -98,18 +115,21 @@ export class GameService {
     sendUpdateToClients(game: Game) {
         if (!game.isDirty && !game.hand?.isDirty) return
 
-        console.log('Start sending updates to client...')
         try {
             if (game.isDirty) {
-                const data = game.toJSON()
+                const fullData = game.toJSON()
+                const fields = [...game.dirtyFields]
+                if (game.hand?.isDirty) fields.push('hand')
+                const data = fields.includes('*') ? fullData : _.pick(fullData, ...fields, 'id', 'time', 'noHand')
                 RealtimeServ.roomBroadcast(game.id, 'update_game', proto.Game.encode(data).finish())
             }
             else {
                 const data = {
                     id: game.id,
                     time: Date.now(),
-                    hand: game.hand?.toJSON()
+                    hand: game.hand?.toJSON(true)
                 }
+
                 const encoded = proto.GameHandUpdate.encode(data).finish()
                 if (!game.isDirty) {
                     RealtimeServ.roomBroadcast(game.id, 'update_hand', encoded)
@@ -123,10 +143,9 @@ export class GameService {
         }
 
         if (game.hand?.isDirty) {
-            game.hand?.unmarkDirty(proto.GameHand.encode(game.hand.toJSON()).finish())
+            game.hand?.unmarkDirty(proto.GameHand.encode(game.hand.toJSON(true)).finish())
         }
-        game.isDirty = false
-        console.log('End sending updates to client...')
+        game.unmarkDirty()
     }
 
     sendMessage(gameId: string, msg: IGameMessage) {
@@ -137,7 +156,7 @@ export class GameService {
         RealtimeServ.joinRoom(game.id, socketId)
         RealtimeServ.bind(`${game.id}:${playerId}`, socketId)
         RealtimeServ.bind(game.id, socketId)
-        game.markDirty(true, false)
+        game.addLogs([{action: GameLogAction.SOCKET_IN, player: playerId}])
     }
 
     async startup() {
@@ -150,7 +169,7 @@ export class GameService {
             catch (err) {
                 console.log(`Save game error`, err)
             }
-        }, 1000)
+        }, 2000)
 
         setInterval(() => {
             console.log('Start prunning games...')
@@ -215,7 +234,9 @@ export class GameService {
 
         RealtimeServ.onSocketDisconnected = (socketId, bindings) => {
             if (!bindings) return
-            bindings.forEach(id => this.games.get(id)?.markDirty(true, false)) // TODO
+            bindings.forEach(id => this.games.get(id)?.addLogs([{
+                action: GameLogAction.SOCKET_OUT
+            }])) // TODO
         }
     }
 }

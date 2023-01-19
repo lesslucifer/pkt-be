@@ -1,9 +1,10 @@
-import { Body, ExpressRouter, GET, Params, POST, PUT, Query } from "express-router-ts";
+import { argMapperDecor, Body, ExpressRouter, GET, Params, POST, PUT, Query } from "express-router-ts";
 import _ from "lodash";
 import { ObjectId } from "mongodb";
 import HC from "../glob/hc";
 import { Game, GamePlayer, GameSettings, GameStatus, IStackRequest } from "../models/game";
-import { ActionType, GameHandStatus, IPlayerAction } from "../models/game-hand";
+import { ActionType, GameHandStatus, HandStepType, IPlayerAction } from "../models/game-hand";
+import { GameLogAction } from "../models/game-log";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
@@ -46,7 +47,11 @@ class GamesRouter extends ExpressRouter {
         if (!game.players.get(newOwnerId)) throw new AppLogicError(`Cannot transfer ownership. Player not found`, 403)
 
         game.ownerId = newOwnerId
-        game.markDirty()
+        game.addLogs([{
+            action: GameLogAction.TRANSFER_OWNERSHIP,
+            player: gamePlayer.id,
+            owner: newOwnerId
+        }])
 
         return HC.SUCCESS
     }
@@ -82,13 +87,19 @@ class GamesRouter extends ExpressRouter {
         if (gamePlayer.id !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
         if (newSettings.bigBlind <= newSettings.smallBlind) throw new AppLogicError(`Big blind must be greater than small blind`, 400)
         
+        game.addLogs([{
+            action: GameLogAction.REQUEST_UPDATE_SETTINGS,
+            settings: newSettings
+        }])
         if (!game.hand) {
             game.settings = newSettings
-            game.markDirty()
+            game.addLogs([{
+                action: GameLogAction.UPDATE_SETTINGS,
+                settings: newSettings
+            }])
         }
         else {
             game.requests.settings = newSettings
-            game.markDirty(true, false)
         }
         
         return HC.SUCCESS
@@ -131,7 +142,11 @@ class GamesRouter extends ExpressRouter {
         if (idx < 0) throw new AppLogicError(`Cannot unleave seat. You haven't request to leave`)
 
         game.requests.seatOut.splice(idx, 1)
-        game.markDirty(true, false)
+        game.addLogs([{
+            action: GameLogAction.REQUEST_UNSEAT_OUT,
+            player: gamePlayer.id,
+            seat: mySeat
+        }])
 
         return game.toJSON()
     }
@@ -143,7 +158,11 @@ class GamesRouter extends ExpressRouter {
         if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot shuffle seats! Only owner can perform this action`, 403)
         
         game.seats = _.shuffle(game.seats)
-        game.markDirty()
+        game.addLogs([{
+            action: GameLogAction.SHUFFLE_SEATS,
+            player: gamePlayer.id,
+            seats: game.seats
+        }])
 
         return game.toJSON()
     }
@@ -167,7 +186,8 @@ class GamesRouter extends ExpressRouter {
         const game = gamePlayer.game
         if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot start the game. Only owner can perform this action`, 403)
         game.start()
-        game.markDirty()
+
+        game.addLogs([{action: GameLogAction.START_GAME, player: gamePlayer.id}])
 
         return HC.SUCCESS
     }
@@ -179,7 +199,8 @@ class GamesRouter extends ExpressRouter {
         if (game.ownerId !== gamePlayer.id) throw new AppLogicError(`Cannot stop the game. Only owner can perform this action`, 403)
         if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot stop the game. The game is already stopped`)
         game.requests.stopGame = true
-        game.markDirty(true, false)
+        
+        game.addLogs([{action: GameLogAction.REQUEST_STOP_GAME, player: gamePlayer.id}])
 
         return game.toJSON()
     }
@@ -192,7 +213,8 @@ class GamesRouter extends ExpressRouter {
         if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot unstop the game. The game is already stopped`)
         if (!game.requests.stopGame) throw new AppLogicError(`Cannot unstop the game. The game is not being requested to stop`)
         game.requests.stopGame = false
-        game.markDirty(true, false)
+        
+        game.addLogs([{action: GameLogAction.REQUEST_UNSTOP_GAME, player: gamePlayer.id}])
 
         return game.toJSON()
     }
@@ -205,7 +227,7 @@ class GamesRouter extends ExpressRouter {
         if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot pause the game. The game must be playing`, 403)
         
         game.status = GameStatus.PAUSED
-        game.markDirty(true, false)
+        game.addLogs([{action: GameLogAction.PAUSE_GAME, player: gamePlayer.id}])
 
         return HC.SUCCESS
     }
@@ -218,21 +240,14 @@ class GamesRouter extends ExpressRouter {
         if (game.status !== GameStatus.PAUSED) throw new AppLogicError(`Cannot resume the game. The game must be paused`, 403)
         
         game.status = GameStatus.PLAYING
-        game.markDirty(true, false)
+        if (game.hand && game.hand.status !== GameHandStatus.OVER) {
+            game.hand.resume()
+        }
+        else {
+            game.startNewHand()
+        }
+        game.addLogs([{action: GameLogAction.RESUME_GAME, player: gamePlayer.id}])
         
-        return HC.SUCCESS
-    }
-
-    @POST({path: "/hands"})
-    @AuthServ.authGamePlayer()
-    async startNewHand(@Player() player: GamePlayer) {
-        const game = player.game
-        if (game.hand && game.hand.status !== GameHandStatus.OVER) throw new AppLogicError(`Cannot start new hand, the current hand is not over`)
-
-        game.hand = undefined
-        game.startNewHand()
-        game.markDirty()
-
         return HC.SUCCESS
     }
 
@@ -264,7 +279,11 @@ class GamesRouter extends ExpressRouter {
         
         if (!hp.showCard) {
             hp.showCard = true
-            player.game.markDirty()
+            hand.markDirty({
+                type: HandStepType.SHOW_CARDS,
+                player: player.id,
+                cards: hand.playerCards[hp.id]
+            })
         }
 
         return HC.SUCCESS

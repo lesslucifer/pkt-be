@@ -84,16 +84,17 @@ message GameHand {
 
 message Game {
     string id = 1;
-    string ownerId = 2;
-    string status = 3;
+    optional string ownerId = 2;
+    optional string status = 3;
     repeated string seats = 4;
     map<string, GamePlayer> players = 5;
     repeated string onlinePlayers = 6;
-    int32 dealerSeat = 7;
-    GameSettings settings = 8;
-    GameRequests requests = 9;
+    optional int32 dealerSeat = 7;
+    optional GameSettings settings = 8;
+    optional GameRequests requests = 9;
     int64 time = 10;
-    GameHand hand = 11;
+    optional GameHand hand = 11;
+    bool noHand = 12;
 }
 
 message GameHandUpdate {

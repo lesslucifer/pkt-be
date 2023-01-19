@@ -3520,6 +3520,7 @@
          * @property {IGameRequests|null} [requests] Game requests
          * @property {number|Long|null} [time] Game time
          * @property {IGameHand|null} [hand] Game hand
+         * @property {boolean|null} [noHand] Game noHand
          */
     
         /**
@@ -3550,19 +3551,19 @@
     
         /**
          * Game ownerId.
-         * @member {string} ownerId
+         * @member {string|null|undefined} ownerId
          * @memberof Game
          * @instance
          */
-        Game.prototype.ownerId = "";
+        Game.prototype.ownerId = null;
     
         /**
          * Game status.
-         * @member {string} status
+         * @member {string|null|undefined} status
          * @memberof Game
          * @instance
          */
-        Game.prototype.status = "";
+        Game.prototype.status = null;
     
         /**
          * Game seats.
@@ -3590,11 +3591,11 @@
     
         /**
          * Game dealerSeat.
-         * @member {number} dealerSeat
+         * @member {number|null|undefined} dealerSeat
          * @memberof Game
          * @instance
          */
-        Game.prototype.dealerSeat = 0;
+        Game.prototype.dealerSeat = null;
     
         /**
          * Game settings.
@@ -3627,6 +3628,83 @@
          * @instance
          */
         Game.prototype.hand = null;
+    
+        /**
+         * Game noHand.
+         * @member {boolean} noHand
+         * @memberof Game
+         * @instance
+         */
+        Game.prototype.noHand = false;
+    
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+    
+        /**
+         * Game _ownerId.
+         * @member {"ownerId"|undefined} _ownerId
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_ownerId", {
+            get: $util.oneOfGetter($oneOfFields = ["ownerId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Game _status.
+         * @member {"status"|undefined} _status
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_status", {
+            get: $util.oneOfGetter($oneOfFields = ["status"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Game _dealerSeat.
+         * @member {"dealerSeat"|undefined} _dealerSeat
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_dealerSeat", {
+            get: $util.oneOfGetter($oneOfFields = ["dealerSeat"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Game _settings.
+         * @member {"settings"|undefined} _settings
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_settings", {
+            get: $util.oneOfGetter($oneOfFields = ["settings"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Game _requests.
+         * @member {"requests"|undefined} _requests
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_requests", {
+            get: $util.oneOfGetter($oneOfFields = ["requests"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
+         * Game _hand.
+         * @member {"hand"|undefined} _hand
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_hand", {
+            get: $util.oneOfGetter($oneOfFields = ["hand"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
     
         /**
          * Creates a new Game instance using the specified properties.
@@ -3679,6 +3757,8 @@
                 writer.uint32(/* id 10, wireType 0 =*/80).int64(message.time);
             if (message.hand != null && Object.hasOwnProperty.call(message, "hand"))
                 $root.GameHand.encode(message.hand, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
+            if (message.noHand != null && Object.hasOwnProperty.call(message, "noHand"))
+                writer.uint32(/* id 12, wireType 0 =*/96).bool(message.noHand);
             return writer;
         };
     
@@ -3780,6 +3860,10 @@
                         message.hand = $root.GameHand.decode(reader, reader.uint32());
                         break;
                     }
+                case 12: {
+                        message.noHand = reader.bool();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -3815,15 +3899,20 @@
         Game.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.id != null && message.hasOwnProperty("id"))
                 if (!$util.isString(message.id))
                     return "id: string expected";
-            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+            if (message.ownerId != null && message.hasOwnProperty("ownerId")) {
+                properties._ownerId = 1;
                 if (!$util.isString(message.ownerId))
                     return "ownerId: string expected";
-            if (message.status != null && message.hasOwnProperty("status"))
+            }
+            if (message.status != null && message.hasOwnProperty("status")) {
+                properties._status = 1;
                 if (!$util.isString(message.status))
                     return "status: string expected";
+            }
             if (message.seats != null && message.hasOwnProperty("seats")) {
                 if (!Array.isArray(message.seats))
                     return "seats: array expected";
@@ -3848,27 +3937,41 @@
                     if (!$util.isString(message.onlinePlayers[i]))
                         return "onlinePlayers: string[] expected";
             }
-            if (message.dealerSeat != null && message.hasOwnProperty("dealerSeat"))
+            if (message.dealerSeat != null && message.hasOwnProperty("dealerSeat")) {
+                properties._dealerSeat = 1;
                 if (!$util.isInteger(message.dealerSeat))
                     return "dealerSeat: integer expected";
+            }
             if (message.settings != null && message.hasOwnProperty("settings")) {
-                var error = $root.GameSettings.verify(message.settings);
-                if (error)
-                    return "settings." + error;
+                properties._settings = 1;
+                {
+                    var error = $root.GameSettings.verify(message.settings);
+                    if (error)
+                        return "settings." + error;
+                }
             }
             if (message.requests != null && message.hasOwnProperty("requests")) {
-                var error = $root.GameRequests.verify(message.requests);
-                if (error)
-                    return "requests." + error;
+                properties._requests = 1;
+                {
+                    var error = $root.GameRequests.verify(message.requests);
+                    if (error)
+                        return "requests." + error;
+                }
             }
             if (message.time != null && message.hasOwnProperty("time"))
                 if (!$util.isInteger(message.time) && !(message.time && $util.isInteger(message.time.low) && $util.isInteger(message.time.high)))
                     return "time: integer|Long expected";
             if (message.hand != null && message.hasOwnProperty("hand")) {
-                var error = $root.GameHand.verify(message.hand);
-                if (error)
-                    return "hand." + error;
+                properties._hand = 1;
+                {
+                    var error = $root.GameHand.verify(message.hand);
+                    if (error)
+                        return "hand." + error;
+                }
             }
+            if (message.noHand != null && message.hasOwnProperty("noHand"))
+                if (typeof message.noHand !== "boolean")
+                    return "noHand: boolean expected";
             return null;
         };
     
@@ -3940,6 +4043,8 @@
                     throw TypeError(".Game.hand: object expected");
                 message.hand = $root.GameHand.fromObject(object.hand);
             }
+            if (object.noHand != null)
+                message.noHand = Boolean(object.noHand);
             return message;
         };
     
@@ -3964,24 +4069,25 @@
                 object.players = {};
             if (options.defaults) {
                 object.id = "";
-                object.ownerId = "";
-                object.status = "";
-                object.dealerSeat = 0;
-                object.settings = null;
-                object.requests = null;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.time = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.time = options.longs === String ? "0" : 0;
-                object.hand = null;
+                object.noHand = false;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 object.id = message.id;
-            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+            if (message.ownerId != null && message.hasOwnProperty("ownerId")) {
                 object.ownerId = message.ownerId;
-            if (message.status != null && message.hasOwnProperty("status"))
+                if (options.oneofs)
+                    object._ownerId = "ownerId";
+            }
+            if (message.status != null && message.hasOwnProperty("status")) {
                 object.status = message.status;
+                if (options.oneofs)
+                    object._status = "status";
+            }
             if (message.seats && message.seats.length) {
                 object.seats = [];
                 for (var j = 0; j < message.seats.length; ++j)
@@ -3998,19 +4104,33 @@
                 for (var j = 0; j < message.onlinePlayers.length; ++j)
                     object.onlinePlayers[j] = message.onlinePlayers[j];
             }
-            if (message.dealerSeat != null && message.hasOwnProperty("dealerSeat"))
+            if (message.dealerSeat != null && message.hasOwnProperty("dealerSeat")) {
                 object.dealerSeat = message.dealerSeat;
-            if (message.settings != null && message.hasOwnProperty("settings"))
+                if (options.oneofs)
+                    object._dealerSeat = "dealerSeat";
+            }
+            if (message.settings != null && message.hasOwnProperty("settings")) {
                 object.settings = $root.GameSettings.toObject(message.settings, options);
-            if (message.requests != null && message.hasOwnProperty("requests"))
+                if (options.oneofs)
+                    object._settings = "settings";
+            }
+            if (message.requests != null && message.hasOwnProperty("requests")) {
                 object.requests = $root.GameRequests.toObject(message.requests, options);
+                if (options.oneofs)
+                    object._requests = "requests";
+            }
             if (message.time != null && message.hasOwnProperty("time"))
                 if (typeof message.time === "number")
                     object.time = options.longs === String ? String(message.time) : message.time;
                 else
                     object.time = options.longs === String ? $util.Long.prototype.toString.call(message.time) : options.longs === Number ? new $util.LongBits(message.time.low >>> 0, message.time.high >>> 0).toNumber() : message.time;
-            if (message.hand != null && message.hasOwnProperty("hand"))
+            if (message.hand != null && message.hasOwnProperty("hand")) {
                 object.hand = $root.GameHand.toObject(message.hand, options);
+                if (options.oneofs)
+                    object._hand = "hand";
+            }
+            if (message.noHand != null && message.hasOwnProperty("noHand"))
+                object.noHand = message.noHand;
             return object;
         };
     
