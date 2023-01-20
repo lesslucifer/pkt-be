@@ -3521,6 +3521,7 @@
          * @property {number|Long|null} [time] Game time
          * @property {IGameHand|null} [hand] Game hand
          * @property {boolean|null} [noHand] Game noHand
+         * @property {string|null} [seed] Game seed
          */
     
         /**
@@ -3637,6 +3638,14 @@
          */
         Game.prototype.noHand = false;
     
+        /**
+         * Game seed.
+         * @member {string|null|undefined} seed
+         * @memberof Game
+         * @instance
+         */
+        Game.prototype.seed = null;
+    
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
     
@@ -3707,6 +3716,17 @@
         });
     
         /**
+         * Game _seed.
+         * @member {"seed"|undefined} _seed
+         * @memberof Game
+         * @instance
+         */
+        Object.defineProperty(Game.prototype, "_seed", {
+            get: $util.oneOfGetter($oneOfFields = ["seed"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+    
+        /**
          * Creates a new Game instance using the specified properties.
          * @function create
          * @memberof Game
@@ -3759,6 +3779,8 @@
                 $root.GameHand.encode(message.hand, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             if (message.noHand != null && Object.hasOwnProperty.call(message, "noHand"))
                 writer.uint32(/* id 12, wireType 0 =*/96).bool(message.noHand);
+            if (message.seed != null && Object.hasOwnProperty.call(message, "seed"))
+                writer.uint32(/* id 13, wireType 2 =*/106).string(message.seed);
             return writer;
         };
     
@@ -3862,6 +3884,10 @@
                     }
                 case 12: {
                         message.noHand = reader.bool();
+                        break;
+                    }
+                case 13: {
+                        message.seed = reader.string();
                         break;
                     }
                 default:
@@ -3972,6 +3998,11 @@
             if (message.noHand != null && message.hasOwnProperty("noHand"))
                 if (typeof message.noHand !== "boolean")
                     return "noHand: boolean expected";
+            if (message.seed != null && message.hasOwnProperty("seed")) {
+                properties._seed = 1;
+                if (!$util.isString(message.seed))
+                    return "seed: string expected";
+            }
             return null;
         };
     
@@ -4045,6 +4076,8 @@
             }
             if (object.noHand != null)
                 message.noHand = Boolean(object.noHand);
+            if (object.seed != null)
+                message.seed = String(object.seed);
             return message;
         };
     
@@ -4131,6 +4164,11 @@
             }
             if (message.noHand != null && message.hasOwnProperty("noHand"))
                 object.noHand = message.noHand;
+            if (message.seed != null && message.hasOwnProperty("seed")) {
+                object.seed = message.seed;
+                if (options.oneofs)
+                    object._seed = "seed";
+            }
             return object;
         };
     

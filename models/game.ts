@@ -297,7 +297,9 @@ export class Game {
         this.hand && this.unsavedHands.push(this.hand)
         this.performNoHandActions()
         this.startNewHand()
-        this.addLogs([{action: GameLogAction.HAND_OVER, handId: this.hand?.id}]) 
+        if (this.hand) {
+            this.addLogs([{action: GameLogAction.HAND_OVER, handId: this.hand?.id}]) 
+        }
     }
 
     performNoHandActions() {
@@ -339,6 +341,7 @@ export class Game {
             ownerId: this.ownerId,
             status: this.status,
             seats: this.seats,
+            seed: this.seed,
             players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
             handCount: this.handCount,
@@ -354,6 +357,7 @@ export class Game {
             ownerId: this.ownerId,
             status: this.status,
             seats: this.seats,
+            seed: this.seed,
             players: _.fromPairs([...this.players.entries()]),
             onlinePlayers: [...this.players.keys()].filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0),
             dealerSeat: this.dealerSeat,

@@ -3,7 +3,7 @@ import moment from "moment";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
 import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
-import { GameLogAction } from "../models/game-log";
+import { GameLogAction, IGameLog } from "../models/game-log";
 import proto from '../proto/game.proto';
 import RealtimeServ from "./realtime.serv";
 
@@ -176,7 +176,7 @@ export class GameService {
             this.games.forEach(g => {
                 if (!g) return
                 try {
-                    if (g.status === GameStatus.PLAYING && moment().diff(g.lastActive, 'd') >= 3) {
+                    if (g.status !== GameStatus.STOPPED && moment().diff(g.lastActive, 'd') >= 3) {
                         console.log('Game', g.id, 'is going to be pruned')
                         g.hand = null
                         g.status = GameStatus.STOPPED
@@ -193,7 +193,7 @@ export class GameService {
         setInterval(async () => {
             try {
                 const removedGames = Array.from(this.games.values())
-                .filter(g => g?.status === GameStatus.STOPPED && moment().diff(g.lastActive, 'h') >= 6)
+                .filter(g => g?.status !== GameStatus.PLAYING && moment().diff(g.lastActive, 'h') >= 6)
 
                 await this.saveGamesIfNeeded(removedGames)
                 removedGames.forEach(g => this.games.delete(g.id))

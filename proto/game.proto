@@ -95,6 +95,7 @@ message Game {
     int64 time = 10;
     optional GameHand hand = 11;
     bool noHand = 12;
+    optional string seed = 13;
 }
 
 message GameHandUpdate {
