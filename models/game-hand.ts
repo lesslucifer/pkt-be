@@ -91,6 +91,8 @@ export interface GameHandWinner {
 
 export class GameHand {
     id: number
+    dealerSeat: number
+    seats: string[]
 
     deck: Deck = new Deck()
     publicSeed: string
@@ -125,6 +127,8 @@ export class GameHand {
 
     constructor(private game: Game, private players: HandPlayer[]) {
         this.id = game.nextHandId()
+        this.dealerSeat = game.dealerSeat
+        this.seats = [...game.seats]
         this.publicSeed = game.seed
         this.privateSeed = shortid.generate()
         players.forEach(p => this.playersMap.set(p.id, p))
@@ -536,6 +540,8 @@ export class GameHand {
         return {
             gameId: this.game.id,
             id: this.id,
+            dealerSeat: this.dealerSeat,
+            seats: this.seats,
             publicSeed: this.publicSeed,
             privateSeed: this.privateSeed,
             shuffleTime: this.shuffleTime,

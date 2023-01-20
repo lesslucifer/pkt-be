@@ -193,7 +193,7 @@ export class GameService {
         setInterval(async () => {
             try {
                 const removedGames = Array.from(this.games.values())
-                .filter(g => g?.status !== GameStatus.PLAYING && moment().diff(g.lastActive, 'h') >= 6)
+                .filter(g => g && g.status !== GameStatus.PLAYING && moment().diff(g.lastActive, 'h') >= 6)
 
                 await this.saveGamesIfNeeded(removedGames)
                 removedGames.forEach(g => this.games.delete(g.id))

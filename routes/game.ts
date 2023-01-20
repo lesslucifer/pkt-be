@@ -65,6 +65,23 @@ class GamesRouter extends ExpressRouter {
         }
     }
 
+    @GET({ path: "/hands/:handId" })
+    @AuthServ.authPlayer()
+    @AuthServ.authGame()
+    async getHand(@PlayerId() playerId: string, @CurrentGame() game: Game, @IntParams('handId') handId: number) {
+        const hand = await GameServ.HandModel.findOne({
+            id: handId,
+            gameId: game.id,
+        })
+        
+        if (_.keys(hand.playerNames).find(pid => !hand.acceptShowSeeds?.includes?.(pid))) {
+            delete hand.privateSeed
+        }
+        hand.yourCards = hand.yourCards?.[playerId]
+
+        return hand
+    }
+
     @PUT({ path: "/seed" })
     @AuthServ.authGamePlayer()
     async changeSeed(@Player() gamePlayer: GamePlayer) {
