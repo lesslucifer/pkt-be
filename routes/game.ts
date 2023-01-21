@@ -45,12 +45,12 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     @AuthServ.authGame()
     async getHands(@PlayerId() playerId: string, @CurrentGame() game: Game, @Query() query: any) {
-        const pageSize = 50
+        const pageSize = isNaN(query.pageSize) ? 10 : parseInt(query.pageSize)
         const page = query.page ?? 0
         const offset = page * pageSize
         const data = await GameServ.HandModel.find({
             gameId: game.id
-        }).limit(pageSize).sort({ id: 'desc' }).skip(offset).toArray()
+        }).limit(pageSize).project({logs: 0}).sort({ id: 'desc' }).skip(offset).toArray()
         data.forEach(h => {
             if (_.keys(h.playerNames).find(pid => !h.acceptShowSeeds?.includes?.(pid))) {
                 delete h.privateSeed
