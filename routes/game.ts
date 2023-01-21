@@ -175,7 +175,7 @@ class GamesRouter extends ExpressRouter {
 
         game.requestLeaveSeat(gamePlayer)
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: `/players/:playerId/leave` })
@@ -209,7 +209,7 @@ class GamesRouter extends ExpressRouter {
             seat: mySeat
         }])
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/seats/shuffled" })
@@ -225,7 +225,7 @@ class GamesRouter extends ExpressRouter {
             seats: game.seats
         }])
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/seats/:seat" })
@@ -238,7 +238,7 @@ class GamesRouter extends ExpressRouter {
     async takeSeat(@PlayerId() playerId: string, @CurrentGame() game: Game,
         @IntParams('seat') seat: number, @Body('buyIn') buyIn: number, @Body('name') name: string) {
         game.requestSeat(playerId, seat, buyIn, name)
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/status/playing" })
@@ -263,7 +263,7 @@ class GamesRouter extends ExpressRouter {
 
         game.addLogs([{ action: GameLogAction.REQUEST_STOP_GAME, player: gamePlayer.id }])
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/status/unstopped" })
@@ -277,7 +277,7 @@ class GamesRouter extends ExpressRouter {
 
         game.addLogs([{ action: GameLogAction.REQUEST_UNSTOP_GAME, player: gamePlayer.id }])
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/status/paused" })
@@ -324,7 +324,7 @@ class GamesRouter extends ExpressRouter {
 
         game.hand.takeAction(player.id, action)
 
-        return game.toJSON()
+        return HC.SUCCESS
     }
 
     @PUT({ path: "/hand/showCards/true" })
