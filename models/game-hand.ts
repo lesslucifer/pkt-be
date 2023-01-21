@@ -276,7 +276,7 @@ export class GameHand {
         this.markDirty({
             type: HandStepType.NEW_ROUND,
             round: this.round,
-            cards: this.round === HandRound.FLOP ? this.communityCards : [_.last(this.communityCards)]
+            cards: this.round === HandRound.FLOP ? [...this.communityCards] : [_.last(this.communityCards)]
         })
     }
 
@@ -359,6 +359,11 @@ export class GameHand {
             if (winAmount <= 0) return
             this.playersMap.get(pid).stack += winAmount
             this.playersMap.get(pid).showCard = true
+            this.markDirty({
+                type: HandStepType.SHOW_CARDS,
+                player: pid,
+                cards: this.playerCards[pid]
+            })
         })
 
         // This case shouldn't be existed, just a safe-check. All remaining committed post shouuld return to the player
@@ -434,7 +439,16 @@ export class GameHand {
 
     async autoPlayHandForAllIn() {
         this.status = GameHandStatus.AUTO
-        this.players.forEach(p => p.showCard = p.showCard || p.status === HandPlayerStatus.ALL_IN)
+        this.players.forEach(p => {
+            if (!p.showCard && p.status === HandPlayerStatus.ALL_IN) {
+                p.showCard = true
+                this.markDirty({
+                    type: HandStepType.SHOW_CARDS,
+                    player: p.id,
+                    cards: this.playerCards[p.id]
+                })
+            }
+        })
         while (this.round !== HandRound.DONE) {
             try {
                 await hera.sleep(this.game.settings.gameSpeed * 4)
