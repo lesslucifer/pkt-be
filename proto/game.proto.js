@@ -4489,6 +4489,254 @@
     
         return GameHandUpdate;
     })();
+    
+    $root.MyCardsUpdate = (function() {
+    
+        /**
+         * Properties of a MyCardsUpdate.
+         * @exports IMyCardsUpdate
+         * @interface IMyCardsUpdate
+         * @property {number|null} [hand] MyCardsUpdate hand
+         * @property {Array.<ICard>|null} [cards] MyCardsUpdate cards
+         */
+    
+        /**
+         * Constructs a new MyCardsUpdate.
+         * @exports MyCardsUpdate
+         * @classdesc Represents a MyCardsUpdate.
+         * @implements IMyCardsUpdate
+         * @constructor
+         * @param {IMyCardsUpdate=} [properties] Properties to set
+         */
+        function MyCardsUpdate(properties) {
+            this.cards = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+    
+        /**
+         * MyCardsUpdate hand.
+         * @member {number} hand
+         * @memberof MyCardsUpdate
+         * @instance
+         */
+        MyCardsUpdate.prototype.hand = 0;
+    
+        /**
+         * MyCardsUpdate cards.
+         * @member {Array.<ICard>} cards
+         * @memberof MyCardsUpdate
+         * @instance
+         */
+        MyCardsUpdate.prototype.cards = $util.emptyArray;
+    
+        /**
+         * Creates a new MyCardsUpdate instance using the specified properties.
+         * @function create
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {IMyCardsUpdate=} [properties] Properties to set
+         * @returns {MyCardsUpdate} MyCardsUpdate instance
+         */
+        MyCardsUpdate.create = function create(properties) {
+            return new MyCardsUpdate(properties);
+        };
+    
+        /**
+         * Encodes the specified MyCardsUpdate message. Does not implicitly {@link MyCardsUpdate.verify|verify} messages.
+         * @function encode
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {IMyCardsUpdate} message MyCardsUpdate message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MyCardsUpdate.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.hand != null && Object.hasOwnProperty.call(message, "hand"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int32(message.hand);
+            if (message.cards != null && message.cards.length)
+                for (var i = 0; i < message.cards.length; ++i)
+                    $root.Card.encode(message.cards[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+    
+        /**
+         * Encodes the specified MyCardsUpdate message, length delimited. Does not implicitly {@link MyCardsUpdate.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {IMyCardsUpdate} message MyCardsUpdate message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MyCardsUpdate.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+    
+        /**
+         * Decodes a MyCardsUpdate message from the specified reader or buffer.
+         * @function decode
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {MyCardsUpdate} MyCardsUpdate
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MyCardsUpdate.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.MyCardsUpdate();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.hand = reader.int32();
+                        break;
+                    }
+                case 2: {
+                        if (!(message.cards && message.cards.length))
+                            message.cards = [];
+                        message.cards.push($root.Card.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Decodes a MyCardsUpdate message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {MyCardsUpdate} MyCardsUpdate
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MyCardsUpdate.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+    
+        /**
+         * Verifies a MyCardsUpdate message.
+         * @function verify
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MyCardsUpdate.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.hand != null && message.hasOwnProperty("hand"))
+                if (!$util.isInteger(message.hand))
+                    return "hand: integer expected";
+            if (message.cards != null && message.hasOwnProperty("cards")) {
+                if (!Array.isArray(message.cards))
+                    return "cards: array expected";
+                for (var i = 0; i < message.cards.length; ++i) {
+                    var error = $root.Card.verify(message.cards[i]);
+                    if (error)
+                        return "cards." + error;
+                }
+            }
+            return null;
+        };
+    
+        /**
+         * Creates a MyCardsUpdate message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {MyCardsUpdate} MyCardsUpdate
+         */
+        MyCardsUpdate.fromObject = function fromObject(object) {
+            if (object instanceof $root.MyCardsUpdate)
+                return object;
+            var message = new $root.MyCardsUpdate();
+            if (object.hand != null)
+                message.hand = object.hand | 0;
+            if (object.cards) {
+                if (!Array.isArray(object.cards))
+                    throw TypeError(".MyCardsUpdate.cards: array expected");
+                message.cards = [];
+                for (var i = 0; i < object.cards.length; ++i) {
+                    if (typeof object.cards[i] !== "object")
+                        throw TypeError(".MyCardsUpdate.cards: object expected");
+                    message.cards[i] = $root.Card.fromObject(object.cards[i]);
+                }
+            }
+            return message;
+        };
+    
+        /**
+         * Creates a plain object from a MyCardsUpdate message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {MyCardsUpdate} message MyCardsUpdate
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MyCardsUpdate.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.cards = [];
+            if (options.defaults)
+                object.hand = 0;
+            if (message.hand != null && message.hasOwnProperty("hand"))
+                object.hand = message.hand;
+            if (message.cards && message.cards.length) {
+                object.cards = [];
+                for (var j = 0; j < message.cards.length; ++j)
+                    object.cards[j] = $root.Card.toObject(message.cards[j], options);
+            }
+            return object;
+        };
+    
+        /**
+         * Converts this MyCardsUpdate to JSON.
+         * @function toJSON
+         * @memberof MyCardsUpdate
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MyCardsUpdate.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+    
+        /**
+         * Gets the default type url for MyCardsUpdate
+         * @function getTypeUrl
+         * @memberof MyCardsUpdate
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MyCardsUpdate.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/MyCardsUpdate";
+        };
+    
+        return MyCardsUpdate;
+    })();
 
     return $root;
 });

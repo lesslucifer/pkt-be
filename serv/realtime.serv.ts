@@ -12,6 +12,7 @@ export class RealtimeService {
     revBinding = new Map<string, Set<string>>()
 
     onSocketDisconnected?: (socketId: string, bindingIds: Set<string>) => void
+    onClientRequest?: (socketId: string, request: any) => Promise<void>
 
     init(server: http.Server) {
         this.io = new Server(server, {
@@ -33,6 +34,10 @@ export class RealtimeService {
 
         socket.on('disconnect', (reason) => {
             this.tearDownSocket(socket.id)
+        })
+
+        socket.on('message', (data) => {
+            this.onClientRequest?.(socket.id, data)
         })
     }
 

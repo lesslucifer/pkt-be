@@ -101,6 +101,7 @@ export class GameHand {
 
     playersMap: Map<string, HandPlayer> = new Map()
     playerCards: _.Dictionary<Card[]> = {}
+    sentCards = false
 
     roundPlayers: number[] = []
     status: GameHandStatus = GameHandStatus.READY
@@ -339,7 +340,7 @@ export class GameHand {
         const distPotToWinners = (pot: number, players: HandPlayer[]) => {
             if (players.length <= 0) return // TODO: Log error here, noway to have no winner
 
-            const winPot = pot / players.length
+            const winPot = Math.floor(pot / players.length)
             const remain = winPot % players.length
 
             players.forEach((p, i) => this.winners[p.id] = (this.winners[p.id] ?? 0) + winPot + (i < remain ? 1 : 0))
@@ -415,8 +416,12 @@ export class GameHand {
         const alledInPlayers = this.players.filter(p => p.status === HandPlayerStatus.ALL_IN)
 
         if (alledInPlayers.length + playingPlayers.length === 1) { // all folded, terminate hand
-            this.commitPot()
             const winner = _.first(alledInPlayers) ?? _.first(playingPlayers)
+
+            this.pot[winner.id] = (this.pot[winner.id] ?? 0) - winner.betting
+            winner.betting = null
+            this.commitPot()
+
             winner.stack += this.committedPot
             _.keys(this.pot).forEach(pid => this.pot[pid] = 0)
             this.winners = {[winner.id]: this.committedPot}

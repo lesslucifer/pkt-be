@@ -27,7 +27,7 @@ export interface IGameMessage {
 }
 
 export interface IStackRequest {
-    type: 'ADD' | 'SET'
+    mode: 'ADD' | 'SET'
     amount: number
 }
 
@@ -177,8 +177,8 @@ export class Game {
 
     requestStackUpdate(playerId: string, req: IStackRequest) {
         if (!this.players.has(playerId)) throw new Error(`Cannot request udpate stack! Player not found`)
-        if (req.type === "SET" && req.amount <= 0) throw new Error(`Cannot request udpate stack! Set stack amount must be greater than zero`)
-        if (req.type === "ADD" && req.amount === 0) {
+        if (req.mode === "SET" && req.amount <= 0) throw new Error(`Cannot request udpate stack! Set stack amount must be greater than zero`)
+        if (req.mode === "ADD" && req.amount === 0) {
             this.addLogs([{
                 action: GameLogAction.REQUEST_STACK_ADD,
                 player: playerId,
@@ -190,7 +190,7 @@ export class Game {
         if (!this.hand) return this.processStackUpdate(playerId, req)
         this.requests.stack[playerId] = req
         this.addLogs([{
-            action: req.type === "ADD" ? GameLogAction.REQUEST_STACK_ADD : GameLogAction.REQUEST_STACK_SET,
+            action: req.mode === "ADD" ? GameLogAction.REQUEST_STACK_ADD : GameLogAction.REQUEST_STACK_SET,
             player: playerId,
             amount: req.amount
         }])
@@ -200,7 +200,7 @@ export class Game {
         const player = this.players.get(playerId)
         if (!player) return
 
-        if (req.type === "ADD") {
+        if (req.mode === "ADD") {
             if (req.amount >= 0) {
                 player.buyIn += req.amount
             }
@@ -210,14 +210,14 @@ export class Game {
 
             player.stack += req.amount
         }
-        else if (req.type === "SET" && req.amount > 0) {
+        else if (req.mode === "SET" && req.amount > 0) {
             player.buyOut += player.stack
             player.buyIn += req.amount
             player.stack = req.amount
         }
         
         this.addLogs([{
-            action: req.type === "ADD" ? GameLogAction.STACK_ADD : GameLogAction.STACK_SET,
+            action: req.mode === "ADD" ? GameLogAction.STACK_ADD : GameLogAction.STACK_SET,
             player: playerId,
             stack: player.stack,
             buyIn: player.buyIn,

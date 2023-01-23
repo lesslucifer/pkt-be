@@ -103,3 +103,8 @@ message GameHandUpdate {
     int64 time = 2;
     optional GameHand hand = 3;
 }
+
+message MyCardsUpdate {
+    int32 hand = 1;
+    repeated Card cards = 2;
+}
