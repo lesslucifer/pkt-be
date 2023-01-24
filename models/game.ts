@@ -83,7 +83,7 @@ export class Game {
     logs: IGameLog[] = []
 
     nextHandId() {
-        return this.handCount++
+        return ++this.handCount
     }
 
     addPlayer(playerId: string) {
