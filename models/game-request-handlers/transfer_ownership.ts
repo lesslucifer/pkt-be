@@ -5,7 +5,7 @@ import { GameLogAction } from "../game-log";
 import { BaseGameRequestHandler } from "./base";
 
 interface ITransferOwnershipRequest {
-    newOwnerId: string
+    newOwner: string
 }
 
 export class TransferOwnershipGameRequestHandler extends BaseGameRequestHandler<ITransferOwnershipRequest> {
@@ -16,13 +16,13 @@ export class TransferOwnershipGameRequestHandler extends BaseGameRequestHandler<
 
     async process(game: Game, playerId: string, req: ITransferOwnershipRequest) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
-        if (!game.players.get(req.newOwnerId)) throw new AppLogicError(`Cannot transfer ownership. Player not found`, 403)
+        if (!game.players.get(req.newOwner)) throw new AppLogicError(`Cannot transfer ownership. Player not found`, 403)
 
-        game.ownerId = req.newOwnerId
+        game.ownerId = req.newOwner
         game.addLogs([{
             action: GameLogAction.TRANSFER_OWNERSHIP,
             player: playerId,
-            owner: req.newOwnerId
-        }])
+            owner: req.newOwner
+        }]) 
     }
 }

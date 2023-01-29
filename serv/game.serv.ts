@@ -17,6 +17,7 @@ import { StartGameGameRequestHandler } from "../models/game-request-handlers/sta
 import { StopGameGameRequestHandler } from "../models/game-request-handlers/stop_game";
 import { TakeActionGameRequestHandler } from "../models/game-request-handlers/take_action";
 import { TakeSeatGameRequestHandler } from "../models/game-request-handlers/take_seat";
+import { TransferOwnershipGameRequestHandler } from "../models/game-request-handlers/transfer_ownership";
 import { UnleaveSeatGameRequestHandler } from "../models/game-request-handlers/unleave_seat";
 import { UnstopGameGameRequestHandler } from "../models/game-request-handlers/unstop_game";
 import { UpdateGameSeedGameRequestHandler } from "../models/game-request-handlers/update_game_seed";
@@ -58,6 +59,7 @@ export class GameService {
         new UpdateGameSeedGameRequestHandler(),
         new UpdateSettingsGameRequestHandler(),
         new UpdateStackGameRequestHandler(),
+        new TransferOwnershipGameRequestHandler()
     ].map(handler => [handler.type, handler]))
 
     newGame(playerId: string) {

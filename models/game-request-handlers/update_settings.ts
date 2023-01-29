@@ -16,7 +16,7 @@ export class UpdateSettingsGameRequestHandler extends BaseGameRequestHandler<Gam
 
     async process(game: Game, playerId: string, req: GameSettings) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
-        if (req.bigBlind <= req.smallBlind) throw new AppLogicError(`Big blind must be greater than small blind`, 400)
+        if (req.bigBlind < req.smallBlind) throw new AppLogicError(`Big blind must not be less than small blind`, 400)
 
         game.addLogs([{
             action: GameLogAction.REQUEST_UPDATE_SETTINGS,

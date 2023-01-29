@@ -2,9 +2,9 @@ import { ExpressRouter, GET, Params, POST, Query } from "express-router-ts";
 import _ from "lodash";
 import { ObjectId } from "mongodb";
 import HC from "../glob/hc";
-import { Game } from "../models/game";
+import { Game, GamePlayer } from "../models/game";
 import AuthServ from "../serv/auth.serv";
-import { CurrentGame, IntParams, PlayerId } from "../serv/decors";
+import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
 
 class GamesRouter extends ExpressRouter {
@@ -34,6 +34,12 @@ class GamesRouter extends ExpressRouter {
             logs,
             lastId: _.last(data)?._id
         }
+    }
+
+    @GET({ path: "/hands/latest" })
+    @AuthServ.authGamePlayer()
+    async getLatestHands(@CurrentGame() game: Game) {
+        return game.hand?.persistJSON()
     }
 
     @GET({ path: "/hands" })
