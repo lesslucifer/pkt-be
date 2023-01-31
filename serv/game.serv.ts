@@ -228,6 +228,7 @@ export class GameService {
         catch (err) {
             console.log('processGameRequest error')
             console.log(err)
+            throw err
         }
     }
 
@@ -314,10 +315,20 @@ export class GameService {
         RealtimeServ.onClientRequest = async (socketId, data) => {
             const bindings = [...(RealtimeServ.revBinding.get(socketId) ?? [])]
             const games = bindings.map(bd => this.games.get(bd)).filter(g => !!g)
-            await Promise.all(games.map(g => {
-                const playerId = bindings.find(bd => bd.startsWith(g.id) && bd.substring(g.id.length + 1))?.substring(g.id.length + 1)
-                if (!playerId) return
-                return this.processGameRequest(g, playerId, data)
+            await Promise.all(games.map(async g => {
+                try {
+                    const playerId = bindings.find(bd => bd.startsWith(g.id) && bd.substring(g.id.length + 1))?.substring(g.id.length + 1)
+                    if (!playerId) return
+                    return await this.processGameRequest(g, playerId, data)
+                }
+                catch (err) {
+                    try {
+                        RealtimeServ.getSocket(socketId)?.emit('error', _.get(err, 'message', `${err}`))
+                    }
+                    catch (err2) {
+                        console.log(err2)
+                    }
+                }
             }))
         }
     }

@@ -15,9 +15,9 @@ export class KickPlayerGameRequestHandler extends BaseGameRequestHandler<IKickPl
     async process(game: Game, playerId: string, req: IKickPlayerRequest) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot kick player. Owner action`, 403)
 
-        const seat = game.seats.indexOf(playerId)
+        const seat = game.seats.indexOf(req.player)
         if (seat < 0) throw new AppLogicError(`Cannot leave seat. You are not having a seat`)
 
-        game.requestLeaveSeat(game.players.get(playerId))
+        game.requestLeaveSeat(game.players.get(req.player))
     }
 }
