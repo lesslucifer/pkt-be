@@ -637,7 +637,7 @@
          * Properties of a StackRequest.
          * @exports IStackRequest
          * @interface IStackRequest
-         * @property {string|null} [type] StackRequest type
+         * @property {string|null} [mode] StackRequest mode
          * @property {number|null} [amount] StackRequest amount
          */
     
@@ -657,12 +657,12 @@
         }
     
         /**
-         * StackRequest type.
-         * @member {string} type
+         * StackRequest mode.
+         * @member {string} mode
          * @memberof StackRequest
          * @instance
          */
-        StackRequest.prototype.type = "";
+        StackRequest.prototype.mode = "";
     
         /**
          * StackRequest amount.
@@ -696,8 +696,8 @@
         StackRequest.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.type != null && Object.hasOwnProperty.call(message, "type"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.type);
+            if (message.mode != null && Object.hasOwnProperty.call(message, "mode"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.mode);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int32(message.amount);
             return writer;
@@ -735,7 +735,7 @@
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
-                        message.type = reader.string();
+                        message.mode = reader.string();
                         break;
                     }
                 case 2: {
@@ -777,9 +777,9 @@
         StackRequest.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.type != null && message.hasOwnProperty("type"))
-                if (!$util.isString(message.type))
-                    return "type: string expected";
+            if (message.mode != null && message.hasOwnProperty("mode"))
+                if (!$util.isString(message.mode))
+                    return "mode: string expected";
             if (message.amount != null && message.hasOwnProperty("amount"))
                 if (!$util.isInteger(message.amount))
                     return "amount: integer expected";
@@ -798,8 +798,8 @@
             if (object instanceof $root.StackRequest)
                 return object;
             var message = new $root.StackRequest();
-            if (object.type != null)
-                message.type = String(object.type);
+            if (object.mode != null)
+                message.mode = String(object.mode);
             if (object.amount != null)
                 message.amount = object.amount | 0;
             return message;
@@ -819,11 +819,11 @@
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.type = "";
+                object.mode = "";
                 object.amount = 0;
             }
-            if (message.type != null && message.hasOwnProperty("type"))
-                object.type = message.type;
+            if (message.mode != null && message.hasOwnProperty("mode"))
+                object.mode = message.mode;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = message.amount;
             return object;

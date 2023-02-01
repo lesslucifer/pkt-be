@@ -328,7 +328,7 @@ export class GameHand {
             return winners
         }
 
-        const takePot = (amount) => {
+        const takePot = (amount: number) => {
             let taken = 0
             for (const [pid, committed] of _.entries(this.pot)) {
                 taken += Math.min(committed, amount)
@@ -341,7 +341,7 @@ export class GameHand {
             if (players.length <= 0) return // TODO: Log error here, noway to have no winner
 
             const winPot = Math.floor(pot / players.length)
-            const remain = winPot % players.length
+            const remain = pot % players.length
 
             players.forEach((p, i) => this.winners[p.id] = (this.winners[p.id] ?? 0) + winPot + (i < remain ? 1 : 0))
         }
@@ -367,7 +367,7 @@ export class GameHand {
             })
         })
 
-        // This case shouldn't be existed, just a safe-check. All remaining committed post shouuld return to the player
+        // This case shouldn't exist, just a safe-check. All remaining committed post should return to the player
         _.entries(this.pot).forEach(([pid, amount]) => {
             if (amount > 0) {
                 console.log(`Complete hand error, there are pot remained`, pid, amount)
@@ -433,7 +433,7 @@ export class GameHand {
         if (alledInPlayers.length >= 1 && playingPlayers.length <= 1 && (!onlyPlayer || ((onlyPlayer.betting ?? 0) >= this.betting))) {
             if (onlyPlayer) {
                 onlyPlayer.status = HandPlayerStatus.ALL_IN
-                onlyPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting)))
+                onlyPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting ?? 0)))
             }
             this.autoPlayHandForAllIn()
             return true

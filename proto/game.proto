@@ -18,7 +18,7 @@ message GameSettings {
 }
 
 message StackRequest {
-    string type = 1;
+    string mode = 1;
     int32 amount = 2;
 }
 
