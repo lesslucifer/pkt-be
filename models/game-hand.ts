@@ -3,6 +3,7 @@ import shortid from "shortid";
 import hera, { AppLogicError } from "../utils/hera";
 import { Card, Deck } from "./card";
 import { Game, GamePlayer, GameStatus } from "./game";
+import { GameLogAction } from "./game-log";
 import { PokerHand, PokerHandResult } from "./poker-hand";
 
 export enum HandStepType {
@@ -378,9 +379,24 @@ export class GameHand {
         this.moveToShowDown()
     }
 
+    transferStackToMainGame() {
+        const invalidStackPlayers = this.players.filter(hp => isNaN(hp.stack))
+        if (invalidStackPlayers.length > 0) {
+            console.log(`Cannot transfer stack for hand: ${this.id}; Player stack NaN`)
+            console.log(invalidStackPlayers.map(hp => hp.id))
+            this.game.addLogs([{
+                action: GameLogAction.ERROR,
+                message: `Cannot transfer stack for hand: ${this.id}; Player stack NaN; ${invalidStackPlayers.map(hp => hp.id).join(',')}`
+            }])
+            return
+        }
+
+        this.players.forEach(hp => this.game.players.get(hp.id).stack = hp.stack)
+    }
+
     moveToShowDown() {
         // transfer to game player stack when entering showdown
-        this.players.forEach(hp => this.game.players.get(hp.id).stack = hp.stack)
+        this.transferStackToMainGame()
 
         if (this.status === GameHandStatus.PLAYING || this.status === GameHandStatus.AUTO) {
             this.status = GameHandStatus.SHOWING_DOWN
@@ -433,7 +449,7 @@ export class GameHand {
         if (alledInPlayers.length >= 1 && playingPlayers.length <= 1 && (!onlyPlayer || ((onlyPlayer.betting ?? 0) >= this.betting))) {
             if (onlyPlayer) {
                 onlyPlayer.status = HandPlayerStatus.ALL_IN
-                onlyPlayer.betting = Math.min(playingPlayers[0].stack, _.max(alledInPlayers.map(p => p.betting ?? 0)))
+                onlyPlayer.betting = Math.min(onlyPlayer.stack, _.max(alledInPlayers.map(p => p.betting ?? 0)) ?? 0)
             }
             this.autoPlayHandForAllIn()
             return true

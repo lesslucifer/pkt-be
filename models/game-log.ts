@@ -25,7 +25,8 @@ export enum GameLogAction {
     RESUME_GAME = 'RSG',
     SOCKET_IN = 'SK_I',
     SOCKET_OUT = 'SK_O',
-    UPDATE_SEED = 'USE'
+    UPDATE_SEED = 'USE',
+    ERROR = 'ERR'
 }
 
 export const PersistedLogActions: Set<GameLogAction> = new Set([GameLogAction.GAME_INIT, GameLogAction.SEAT_IN, GameLogAction.SEAT_OUT,
@@ -48,7 +49,8 @@ export interface IGameLog {
     handId?: number
     settings?: GameSettings
     seats?: string[]
-    seed?: string
+    seed?: string,
+    message?: string
 }
 
 export function gameLogUpdateFields(action: GameLogAction): string[] {
@@ -100,6 +102,9 @@ export function gameLogUpdateFields(action: GameLogAction): string[] {
         
         case GameLogAction.UPDATE_SEED:
             return ['seed']
+        
+        case GameLogAction.ERROR:
+            return ['error']
     }
     return ['*']
 }

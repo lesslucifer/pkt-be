@@ -126,6 +126,15 @@ export class GameService {
         if (gameLogs.length > 0) {
             console.log(`Save ${gameLogs.length} game logs`)
             await this.GameLogsModel.insertMany(gameLogs)
+            
+            // Send error log on-save, no better place
+            gameLogs.forEach(glogs => {
+                glogs.logs.forEach(log => {
+                    if (log.action === GameLogAction.ERROR) {
+                        RealtimeServ.roomBroadcast(glogs.id, 'error', log.message)
+                    }
+                })
+            })
         }
 
         const unsavedHands = games.flatMap(g => g.unsavedHands)
@@ -155,7 +164,6 @@ export class GameService {
     sendUpdateToClients(game: Game) {
         if (game.hand?.sentCards === false) {
             for (const pid of game.hand.playersMap.keys()) {
-                console.log(`Send players cards`, pid)
                 this.sendPlayerCards(game, pid)
             }
             game.hand.sentCards = true
