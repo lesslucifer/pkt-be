@@ -329,6 +329,7 @@ export class GameService {
         }
 
         RealtimeServ.onClientRequest = async (socketId, data) => {
+            console.log(moment().format('HH:mm:ss.SSS'), 'Recevied client request socket', socketId)
             const bindings = [...(RealtimeServ.revBinding.get(socketId) ?? [])]
             const games = bindings.map(bd => this.games.get(bd)).filter(g => !!g)
             await Promise.all(games.map(async g => {
@@ -346,6 +347,7 @@ export class GameService {
                     }
                 }
             }))
+            console.log(moment().format('HH:mm:ss.SSS'), 'End processing client request from', socketId)
         }
     }
 }
