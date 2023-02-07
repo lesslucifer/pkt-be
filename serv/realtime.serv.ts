@@ -40,6 +40,10 @@ export class RealtimeService {
         socket.on('message', (data) => {
             this.onClientRequest?.(socket.id, data)
         })
+
+        socket.on('ping', (time) => {
+            socket.emit('pong', time)
+        })
     }
 
     private tearDownSocket(socketId: string) {
