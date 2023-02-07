@@ -296,7 +296,7 @@ export class GameService {
                     console.log(err)
                 }
             })
-        }, 500)
+        }, 100)
 
         setInterval(() => {
             const time = Date.now()

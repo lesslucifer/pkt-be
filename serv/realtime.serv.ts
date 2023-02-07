@@ -1,4 +1,5 @@
 import * as http from 'http';
+import moment from 'moment';
 import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import ENV from '../glob/env';
@@ -92,7 +93,9 @@ export class RealtimeService {
 
     roomBroadcast(room: string, key: string, msg: any) {
         if (!room || !key || !msg) return
+        console.log(moment().format('HH:mm:ss.SSS'), 'Start broadcasting')
         this.io.to(room).emit(key, msg)
+        console.log(moment().format('HH:mm:ss.SSS'), 'End broadcasting')
     }
 }
 
