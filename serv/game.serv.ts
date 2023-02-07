@@ -286,6 +286,8 @@ export class GameService {
         }, 1800 * 1000) // clear cache - run every 30 minutes
 
         setInterval(() => {
+            const start = moment()
+            console.log(start.format('HH:mm:ss.SSS'), 'Start sending updates...')
             this.games.forEach(g => {
                 if (!g) return
                 try {
@@ -296,6 +298,8 @@ export class GameService {
                     console.log(err)
                 }
             })
+            const end = moment()
+            console.log(end.format('HH:mm:ss.SSS'), 'End sending updates; Duration: ', end.diff(start, 'ms'))
         }, 100)
 
         setInterval(() => {
