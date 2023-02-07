@@ -287,7 +287,6 @@ export class GameService {
 
         setInterval(() => {
             const start = moment()
-            console.log(start.format('HH:mm:ss.SSS'), 'Start sending updates...')
             this.games.forEach(g => {
                 if (!g) return
                 try {
@@ -299,7 +298,12 @@ export class GameService {
                 }
             })
             const end = moment()
-            console.log(end.format('HH:mm:ss.SSS'), 'End sending updates; Duration: ', end.diff(start, 'ms'))
+            const dur = end.valueOf() - start.valueOf()
+            if (dur > 60) {
+                console.log('[WARNING] Long sending update detected')
+                console.log(start.format('HH:mm:ss.SSS'), 'Start sending updates...')
+                console.log(end.format('HH:mm:ss.SSS'), 'End sending updates; Duration: ', dur)
+            }
         }, 100)
 
         setInterval(() => {
