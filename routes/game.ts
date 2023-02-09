@@ -36,12 +36,6 @@ class GamesRouter extends ExpressRouter {
         }
     }
 
-    @GET({ path: "/hands/latest" })
-    @AuthServ.authGamePlayer()
-    async getLatestHands(@CurrentGame() game: Game) {
-        return game.hand?.persistJSON()
-    }
-
     @GET({ path: "/hands" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()

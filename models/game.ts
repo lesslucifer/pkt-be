@@ -351,7 +351,7 @@ export class Game {
         }
     }
 
-    toJSON() {
+    toJSON(includeSteps = false) {
         return {
             id: this.id,
             ownerId: this.ownerId,
@@ -364,7 +364,7 @@ export class Game {
             settings: this.settings,
             requests: this.requests,
             time: Date.now(),
-            hand: this.hand?.toJSON(),
+            hand: this.hand?.toJSON(includeSteps),
             noHand: !this.hand
         }
     }

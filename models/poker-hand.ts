@@ -72,7 +72,7 @@ export class PokerHand {
 
     static getSelectedCard(cards: Card[], result: PokerHandRankResult): Card[] {
         if (result.rank === PokerHandRank.STRAIGHT_FLUSH) {
-            return cards.filter((c: Card) => c.suit === result.suit && result.values[0] - 4 <= c.rank && c.rank <= result.values[0])
+            return cards.filter((c: Card) => c.suit === result.suit && ((result.values[0] - 4 <= c.rank && c.rank <= result.values[0]) || (result.values[0] === 5 && c.rank === 14)))
         }
         else if (result.rank === PokerHandRank.FOUR_OF_A_KIND) {
             return [...cards.filter(c => c.rank === result.values[0]), cards.find(c => c.rank === result.values[1])]
@@ -84,7 +84,7 @@ export class PokerHand {
             return _.sortBy(cards.filter(c => c.suit === result.suit), c => c.rank, c => -c.rank).slice(0, 5)
         }
         else if (result.rank === PokerHandRank.STRAIGHT) {
-            return _.uniqBy(cards.filter(c => result.values[0] - 4 <= c.rank && c.rank <= result.values[0]), c => c.rank)
+            return _.uniqBy(cards.filter(c => (result.values[0] - 4 <= c.rank && c.rank <= result.values[0]) || (result.values[0] === 5 && c.rank === 14)), c => c.rank)
         }
         else if (result.rank === PokerHandRank.THREE_OF_A_KIND) {
             return cards.filter(c => result.values.includes(c.rank))

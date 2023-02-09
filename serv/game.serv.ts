@@ -23,7 +23,7 @@ import { UnstopGameGameRequestHandler } from "../models/game-request-handlers/un
 import { UpdateGameSeedGameRequestHandler } from "../models/game-request-handlers/update_game_seed";
 import { UpdateSettingsGameRequestHandler } from "../models/game-request-handlers/update_settings";
 import { UpdateStackGameRequestHandler } from "../models/game-request-handlers/update_stack";
-import proto from '../proto/game.proto';
+import proto from '../proto/game.proto.js';
 import RealtimeServ from "./realtime.serv";
 
 export class GameService {
@@ -173,7 +173,7 @@ export class GameService {
 
         try {
             if (game.isDirty) {
-                const fullData = game.toJSON()
+                const fullData = game.toJSON(true)
                 const fields = [...game.dirtyFields]
                 if (game.hand?.isDirty) fields.push('hand')
                 const data = fields.includes('*') ? fullData : _.pick(fullData, ...fields, 'id', 'time', 'noHand')
