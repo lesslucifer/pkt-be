@@ -11,6 +11,7 @@ import { PauseGameGameRequestHandler } from "../models/game-request-handlers/pau
 import { RequestCardsGameRequestHandler } from "../models/game-request-handlers/req_cards";
 import { ResumeGameGameRequestHandler } from "../models/game-request-handlers/resume_game";
 import { SendMessageGameRequestHandler } from "../models/game-request-handlers/send_message";
+import { SetPlayerStatusGameRequestHandler } from "../models/game-request-handlers/set_status";
 import { ShowCardsGameRequestHandler } from "../models/game-request-handlers/show_cards";
 import { ShuffleSeatsGameRequestHandler } from "../models/game-request-handlers/shuffle_seats";
 import { StartGameGameRequestHandler } from "../models/game-request-handlers/start_game";
@@ -59,7 +60,8 @@ export class GameService {
         new UpdateGameSeedGameRequestHandler(),
         new UpdateSettingsGameRequestHandler(),
         new UpdateStackGameRequestHandler(),
-        new TransferOwnershipGameRequestHandler()
+        new TransferOwnershipGameRequestHandler(),
+        new SetPlayerStatusGameRequestHandler()
     ].map(handler => [handler.type, handler]))
 
     newGame(playerId: string) {

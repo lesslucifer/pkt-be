@@ -26,7 +26,9 @@ export enum GameLogAction {
     SOCKET_IN = 'SK_I',
     SOCKET_OUT = 'SK_O',
     UPDATE_SEED = 'USE',
-    ERROR = 'ERR'
+    ERROR = 'ERR',
+    SET_AWAY = 'AWAY',
+    SET_ACTIVE = 'ACT'
 }
 
 export const PersistedLogActions: Set<GameLogAction> = new Set([GameLogAction.GAME_INIT, GameLogAction.SEAT_IN, GameLogAction.SEAT_OUT,
@@ -83,7 +85,11 @@ export function gameLogUpdateFields(action: GameLogAction): string[] {
 
         case GameLogAction.STACK_ADD:
         case GameLogAction.STACK_SET:
+        case GameLogAction.SET_AWAY:
             return ['players']
+
+        case GameLogAction.SET_ACTIVE:
+            return ['players', 'requests']
         
         case GameLogAction.PAUSE_GAME:
             return ['status', 'dealerSeat']
@@ -105,6 +111,8 @@ export function gameLogUpdateFields(action: GameLogAction): string[] {
         
         case GameLogAction.ERROR:
             return ['error']
+        
+        default:
+            return ['*']
     }
-    return ['*']
 }

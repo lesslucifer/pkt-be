@@ -108,6 +108,8 @@ export class Game {
         if (seat < 0 || seat > 9) throw new Error(`Invalid seat index`)
         if (this.seats[seat]) throw new Error(`This seat is taken already`)
         if (this.requests.seatIn[playerId]) throw new Error(`Player has requested a seat`)
+        if (!this.players.has(playerId)) throw new Error(`Player not in the game`)
+        if (this.seats.includes(playerId)) throw new Error(`Player is already having a seat`)
         if (buyIn <= 0) throw new AppLogicError(`Buy in amount is insufficient`)
         if (!name) throw new AppLogicError(`Name cannot be empty`)
         if (Array.from(this.players.values()).find(p => p.id !== playerId && p.name === name)) {
@@ -138,6 +140,7 @@ export class Game {
         }
         else {
             this.seats[seat] = p.id
+            this.players.get(playerId).status = GamePlayerStatus.ACTIVE
             this.addLogs([{
                 action: GameLogAction.SEAT_IN,
                 player: playerId,
@@ -173,6 +176,24 @@ export class Game {
                 seat
             }])
         }
+    }
+    
+    requestAway(player: GamePlayer) {
+        if (player.status !== GamePlayerStatus.ACTIVE) throw new Error(`Cannot request away. Player is not active`)
+        player.status = GamePlayerStatus.AWAY
+        this.addLogs([{
+            action: GameLogAction.SET_AWAY,
+            player: player.id
+        }])
+    }
+    
+    requestActive(player: GamePlayer) {
+        player.status = GamePlayerStatus.ACTIVE
+        this.requests.seatOut = this.requests.seatOut.filter(seat => this.seats[seat] !== player.id)
+        this.addLogs([{
+            action: GameLogAction.SET_ACTIVE,
+            player: player.id
+        }])
     }
 
     requestStackUpdate(playerId: string, req: IStackRequest) {
@@ -230,6 +251,7 @@ export class Game {
         const pid = this.seats[seat]
         if (!pid) return
         const player = this.players.get(pid)
+        player.status = GamePlayerStatus.ACTIVE
         const orgStack = player.stack
         if (player) {
             player.buyOut += player.stack
@@ -307,6 +329,7 @@ export class Game {
             if (this.seats[seat]) throw new AppLogicError(`The seat is already taken`)
             if (this.seats.includes(pid)) throw new AppLogicError(`Player have seat already`)
             this.seats[seat] = pid
+            this.players.get(pid).status = GamePlayerStatus.ACTIVE
             this.addLogs([{
                 action: GameLogAction.SEAT_IN,
                 player: pid,
