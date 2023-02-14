@@ -65,7 +65,7 @@ export class GameService {
     ].map(handler => [handler.type, handler]))
 
     newGame(playerId: string) {
-        const game = new Game(shortid.generate(), playerId)
+        const game = new Game(shortid.generate(), shortid.generate(), playerId)
         game.lastSave = game.lastActive
         this.games.set(game.id, game)
         this.GameModel.insertOne(game.dataJSON())
@@ -84,7 +84,7 @@ export class GameService {
 
     private gameFromJSON(js: any) {
         if (_.isEmpty(js)) return null
-        const game = new Game(js.id, js.ownerId)
+        const game = new Game(js.id, js.seed, js.ownerId)
         Object.assign(game, js)
         game.seats = game.seats.map(s => _.isNil(s) ? '' : s)
         game.lastActive = moment(js.lastActive)
@@ -172,6 +172,8 @@ export class GameService {
         }
 
         if (!game.isDirty && !game.hand?.isDirty) return
+        
+        console.log('start sendUpdateToClients for game', game.id, game.hand?.steps)
 
         try {
             if (game.isDirty) {
@@ -204,6 +206,7 @@ export class GameService {
             game.hand?.unmarkDirty(proto.GameHand.encode(game.hand.toJSON(true)).finish())
         }
         game.unmarkDirty()
+        console.log('end sendUpdateToClients for game', game.id, game.hand?.steps)
     }
 
     sendMessage(gameId: string, msg: IGameMessage) {

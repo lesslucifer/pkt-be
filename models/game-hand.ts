@@ -15,8 +15,16 @@ export enum HandStepType {
     SHOW_CARDS
 }
 
+export enum BetType {
+    CHECK = 0,
+    CALL,
+    RAISE,
+    ALL_IN
+}
+
 export interface IHandStep {
     type: HandStepType
+    betType?: BetType
     player?: string
     amount?: number
     round?: HandRound
@@ -98,7 +106,6 @@ export class GameHand {
     deck: Deck = new Deck()
     publicSeed: string
     privateSeed: string
-    shuffleTime: number
 
     playersMap: Map<string, HandPlayer> = new Map()
     playerCards: _.Dictionary<Card[]> = {}
@@ -154,7 +161,7 @@ export class GameHand {
                 steps: [...this.steps],
                 data
             })
-            this.steps.length = 0
+            this.steps = []
         }
     }
 
@@ -195,8 +202,7 @@ export class GameHand {
         if (this.status !== GameHandStatus.READY) throw new Error(`Cannot deal, invalid status`)
         // check the players is not dealt
         
-        this.shuffleTime = Date.now()
-        this.deck.shuffle(this.shuffleTime, [this.game.seed, this.privateSeed])
+        this.deck.shuffle(this.game.seed, this.privateSeed)
         this.players.forEach(p => {
             this.playerCards[p.id] = [this.deck.deal(), this.deck.deal()]
         })
@@ -212,14 +218,17 @@ export class GameHand {
         const index = this.roundPlayers[0]
         if (!this.roundPlayers.length || this.players[index] !== player) throw new Error(`Invalid betting player`)
 
+        let betType: BetType = BetType.CHECK
         const maxOtherBet = _.maxBy(this.players, p => (p === player || p.status === HandPlayerStatus.FOLDED ? 0 : p.stack)).stack
         const maxBet = Math.min(player.stack, maxOtherBet)
         if (amount >= maxBet) { // all in
             amount = maxBet
             player.status = HandPlayerStatus.ALL_IN
+            betType = BetType.ALL_IN
         }
         else if (amount > this.betting) { // raise
             if (amount - this.betting < this.minRaise) throw Error(`Invalid betting amount, to low raise, at least ${this.betting + this.minRaise}`)
+            betType = BetType.RAISE
             // if (this.players.find(p => p.status === HandPlayerStatus.ALL_IN)) throw Error(`Cannot raise, there was a player alled in`)
         }
         else if (amount < this.betting) {
@@ -236,9 +245,14 @@ export class GameHand {
         this.minRaise = Math.max(this.minRaise, amount - this.betting)
         this.betting = Math.max(this.betting, amount)
 
+        if (betType === BetType.CHECK && player.betting < amount) {
+            betType = BetType.CALL
+        }
+        
         player.betting = Math.min(amount, player.stack)
         this.markDirty({
             type: HandStepType.BET,
+            betType,
             player: player.id,
             amount: player.betting
         })
@@ -579,7 +593,6 @@ export class GameHand {
             seats: this.seats,
             publicSeed: this.publicSeed,
             privateSeed: this.privateSeed,
-            shuffleTime: this.shuffleTime,
             playerNames: _.fromPairs(this.players.map(p => [p.id, this.game.players.get(p.id).name])),
             yourCards: _.fromPairs(this.players.map(p => [p.id, this.playerCards[p.id]])),
             playerCards: this.players.filter(p => p.showCard).map(p => ({id: p.id, cards: this.playerCards[p.id]})),

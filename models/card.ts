@@ -29,8 +29,8 @@ export class Deck {
     constructor() {
     }
 
-    shuffle(time: number, seeds: string[]) {
-        const nonce = [time, ...seeds].join(':')
+    shuffle(...seeds: string[]) {
+        const nonce = seeds.join(':')
         const hash = sha256(nonce);
         const randomizer = MersenneTwister19937.seedWithArray(hash.words)
         this.cards = shuffle(randomizer, this.cards)

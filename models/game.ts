@@ -5,6 +5,7 @@ import RealtimeServ from "../serv/realtime.serv";
 import { AppLogicError } from "../utils/hera";
 import { GameHand, GameHandStatus, HandPlayer } from "./game-hand";
 import { GameLogAction, gameLogUpdateFields, IGameLog, PersistedLogActions } from "./game-log";
+import sha256 from 'crypto-js/sha256'
 
 export enum GameStatus {
     STOPPED = 'STOPPED',
@@ -40,8 +41,9 @@ export interface GameRequests {
 }
 
 export class Game {
-    constructor(id: string, ownerId: string) {
-        this.id = id;
+    constructor(id: string, seed: string, ownerId: string) {
+        this.id = id
+        this.seed = seed
         this.ownerId = ownerId;
         this.seed = shortid.generate()
     }
