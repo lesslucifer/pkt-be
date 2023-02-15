@@ -2,9 +2,9 @@ import { ExpressRouter, GET, Params, POST, Query } from "express-router-ts";
 import _ from "lodash";
 import { ObjectId } from "mongodb";
 import HC from "../glob/hc";
-import { Game, GamePlayer } from "../models/game";
+import { Game } from "../models/game";
 import AuthServ from "../serv/auth.serv";
-import { CurrentGame, IntParams, Player, PlayerId } from "../serv/decors";
+import { CurrentGame, IntParams, PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
 
 class GamesRouter extends ExpressRouter {
@@ -47,9 +47,6 @@ class GamesRouter extends ExpressRouter {
             gameId: game.id
         }).limit(pageSize).project({logs: 0}).sort({ id: 'desc' }).skip(offset).toArray()
         data.forEach(h => {
-            if (_.keys(h.playerNames).find(pid => !h.acceptShowSeeds?.includes?.(pid))) {
-                delete h.privateSeed
-            }
             h.yourCards = h.yourCards?.[playerId]
         })
 
@@ -69,9 +66,6 @@ class GamesRouter extends ExpressRouter {
             gameId: game.id,
         })
         
-        if (_.keys(hand.playerNames).find(pid => !hand.acceptShowSeeds?.includes?.(pid))) {
-            delete hand.privateSeed
-        }
         hand.yourCards = hand.yourCards?.[playerId]
 
         return hand

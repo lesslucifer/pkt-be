@@ -11,6 +11,7 @@ export enum GameStatus {
     STOPPED = 'STOPPED',
     PAUSED = 'PAUSED',
     PLAYING = 'PLAYING',
+    CLOSED = 'CLOSED'
 }
 
 export interface GameSettings {
@@ -45,7 +46,6 @@ export class Game {
         this.id = id
         this.seed = seed
         this.ownerId = ownerId;
-        this.seed = shortid.generate()
     }
 
     id: string;
@@ -57,6 +57,7 @@ export class Game {
     hand?: GameHand = null
     
     handCount = 0
+    lastPot = 0
     dealerSeat = 0
 
     settings: GameSettings = {
@@ -270,6 +271,7 @@ export class Game {
     }
 
     start() {
+        if (this.status !== GameStatus.STOPPED) throw new Error(`Cannot start game, invalid game status`)
         const readyPlayers = this.getReadyPlayers()
         if (readyPlayers.length < 2) throw new Error(`Cannot start game, players are inactive`)
         this.status = GameStatus.PLAYING
@@ -317,12 +319,15 @@ export class Game {
     }
 
     handOver() {
-        this.hand && this.unsavedHands.push(this.hand)
+        const hand = this.hand
+        if (hand) {
+            this.unsavedHands.push(hand)
+            this.addLogs([{action: GameLogAction.HAND_OVER, handId: hand.id, totalPot: hand.committedPot}])
+            this.lastPot = hand.committedPot
+        }
+
         this.performNoHandActions()
         this.startNewHand()
-        if (this.hand) {
-            this.addLogs([{action: GameLogAction.HAND_OVER, handId: this.hand?.id}]) 
-        }
     }
 
     performNoHandActions() {
@@ -369,6 +374,7 @@ export class Game {
             players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
             handCount: this.handCount,
+            lastPOt: this.lastPot,
             settings: this.settings,
             lastActive: this.lastActive.valueOf(),
             lastSave: this.lastSave.valueOf()
@@ -381,7 +387,6 @@ export class Game {
             ownerId: this.ownerId,
             status: this.status,
             seats: this.seats,
-            seed: this.seed,
             players: _.fromPairs([...this.players.entries()]),
             onlinePlayers: [...this.players.keys()].filter(pid => RealtimeServ.getSocketsFromBinding(`${this.id}:${pid}`).length > 0),
             dealerSeat: this.dealerSeat,
@@ -389,7 +394,8 @@ export class Game {
             requests: this.requests,
             time: Date.now(),
             hand: this.hand?.toJSON(includeSteps),
-            noHand: !this.hand
+            noHand: !this.hand,
+            seed: this.status === GameStatus.CLOSED ? this.seed : null
         }
     }
 

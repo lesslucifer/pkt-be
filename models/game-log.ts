@@ -25,16 +25,16 @@ export enum GameLogAction {
     RESUME_GAME = 'RSG',
     SOCKET_IN = 'SK_I',
     SOCKET_OUT = 'SK_O',
-    UPDATE_SEED = 'USE',
     ERROR = 'ERR',
     SET_AWAY = 'AWAY',
-    SET_ACTIVE = 'ACT'
+    SET_ACTIVE = 'ACT',
+    REVEAL_SEED = 'RSD',
 }
 
 export const PersistedLogActions: Set<GameLogAction> = new Set([GameLogAction.GAME_INIT, GameLogAction.SEAT_IN, GameLogAction.SEAT_OUT,
     GameLogAction.STACK_ADD, GameLogAction.STACK_SET, GameLogAction.NEW_HAND, , GameLogAction.GAME_STOP,
     GameLogAction.HAND_OVER, GameLogAction.UPDATE_SETTINGS, GameLogAction.TRANSFER_OWNERSHIP, GameLogAction.SHUFFLE_SEATS,
-    GameLogAction.START_GAME, GameLogAction.PAUSE_GAME, GameLogAction.RESUME_GAME, GameLogAction.UPDATE_SEED
+    GameLogAction.START_GAME, GameLogAction.PAUSE_GAME, GameLogAction.RESUME_GAME, GameLogAction.REVEAL_SEED
 ])
 
 export interface IGameLog {
@@ -52,7 +52,8 @@ export interface IGameLog {
     settings?: GameSettings
     seats?: string[]
     seed?: string,
-    message?: string
+    message?: string,
+    totalPot?: number
 }
 
 export function gameLogUpdateFields(action: GameLogAction): string[] {
@@ -105,10 +106,7 @@ export function gameLogUpdateFields(action: GameLogAction): string[] {
         
         case GameLogAction.SOCKET_OUT:
             return ['onlinePlayers']
-        
-        case GameLogAction.UPDATE_SEED:
-            return ['seed']
-        
+            
         case GameLogAction.ERROR:
             return ['error']
         

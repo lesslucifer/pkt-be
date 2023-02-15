@@ -3,13 +3,14 @@ import moment from "moment";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
 import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
-import { GameLogAction, IGameLog } from "../models/game-log";
+import { GameLogAction } from "../models/game-log";
 import { IGameRequestHandler } from "../models/game-request-handlers/base";
 import { KickPlayerGameRequestHandler } from "../models/game-request-handlers/kick_player";
 import { LeaveSeatGameRequestHandler } from "../models/game-request-handlers/leave_seat";
 import { PauseGameGameRequestHandler } from "../models/game-request-handlers/pause_game";
 import { RequestCardsGameRequestHandler } from "../models/game-request-handlers/req_cards";
 import { ResumeGameGameRequestHandler } from "../models/game-request-handlers/resume_game";
+import { RevealSeedHandler } from "../models/game-request-handlers/reveal_seed";
 import { SendMessageGameRequestHandler } from "../models/game-request-handlers/send_message";
 import { SetPlayerStatusGameRequestHandler } from "../models/game-request-handlers/set_status";
 import { ShowCardsGameRequestHandler } from "../models/game-request-handlers/show_cards";
@@ -21,7 +22,6 @@ import { TakeSeatGameRequestHandler } from "../models/game-request-handlers/take
 import { TransferOwnershipGameRequestHandler } from "../models/game-request-handlers/transfer_ownership";
 import { UnleaveSeatGameRequestHandler } from "../models/game-request-handlers/unleave_seat";
 import { UnstopGameGameRequestHandler } from "../models/game-request-handlers/unstop_game";
-import { UpdateGameSeedGameRequestHandler } from "../models/game-request-handlers/update_game_seed";
 import { UpdateSettingsGameRequestHandler } from "../models/game-request-handlers/update_settings";
 import { UpdateStackGameRequestHandler } from "../models/game-request-handlers/update_stack";
 import proto from '../proto/game.proto.js';
@@ -57,11 +57,11 @@ export class GameService {
         new TakeSeatGameRequestHandler(),
         new UnleaveSeatGameRequestHandler(),
         new UnstopGameGameRequestHandler(),
-        new UpdateGameSeedGameRequestHandler(),
         new UpdateSettingsGameRequestHandler(),
         new UpdateStackGameRequestHandler(),
         new TransferOwnershipGameRequestHandler(),
-        new SetPlayerStatusGameRequestHandler()
+        new SetPlayerStatusGameRequestHandler(),
+        new RevealSeedHandler(),
     ].map(handler => [handler.type, handler]))
 
     newGame(playerId: string) {
@@ -180,7 +180,7 @@ export class GameService {
                 const fullData = game.toJSON(true)
                 const fields = [...game.dirtyFields]
                 if (game.hand?.isDirty) fields.push('hand')
-                const data = fields.includes('*') ? fullData : _.pick(fullData, ...fields, 'id', 'time', 'noHand')
+                const data = fields.includes('*') ? fullData : _.pick(fullData, ...fields, 'id', 'time', 'seed', 'noHand')
                 RealtimeServ.roomBroadcast(game.id, 'update_game', proto.Game.encode(data).finish())
             }
             else {
@@ -262,7 +262,7 @@ export class GameService {
             this.games.forEach(g => {
                 if (!g) return
                 try {
-                    if (g.status !== GameStatus.STOPPED && moment().diff(g.lastActive, 'd') >= 3) {
+                    if (g.status !== GameStatus.STOPPED && g.status !== GameStatus.CLOSED && moment().diff(g.lastActive, 'd') >= 3) {
                         console.log('Game', g.id, 'is going to be pruned')
                         g.hand = null
                         g.status = GameStatus.STOPPED
@@ -339,6 +339,7 @@ export class GameService {
             const games = bindings.map(bd => this.games.get(bd)).filter(g => !!g)
             await Promise.all(games.map(async g => {
                 try {
+                    if (g.status === GameStatus.CLOSED) throw new Error(`Cannot perform action! The game is closed!`)
                     const playerId = bindings.find(bd => bd.startsWith(g.id) && bd.substring(g.id.length + 1))?.substring(g.id.length + 1)
                     if (!playerId) return
                     return await this.processGameRequest(g, playerId, data)

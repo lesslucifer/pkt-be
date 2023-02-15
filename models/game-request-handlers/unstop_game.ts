@@ -9,7 +9,7 @@ export class UnstopGameGameRequestHandler extends BaseGameRequestHandler {
 
     async process(game: Game, playerId: string) {
         if (game.ownerId !== playerId) throw new AppLogicError(`Cannot unstop the game. Only owner can perform this action`, 403)
-        if (game.status === GameStatus.STOPPED) throw new AppLogicError(`Cannot unstop the game. The game is already stopped`)
+        if (game.status !== GameStatus.PLAYING) throw new AppLogicError(`Cannot unstop the game. The game is not playing`)
         if (!game.requests.stopGame) throw new AppLogicError(`Cannot unstop the game. The game is not being requested to stop`)
         game.requests.stopGame = false
 

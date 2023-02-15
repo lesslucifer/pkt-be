@@ -103,9 +103,8 @@ export class GameHand {
     dealerSeat: number
     seats: string[]
 
+    lastPot: number
     deck: Deck = new Deck()
-    publicSeed: string
-    privateSeed: string
 
     playersMap: Map<string, HandPlayer> = new Map()
     playerCards: _.Dictionary<Card[]> = {}
@@ -138,8 +137,7 @@ export class GameHand {
         this.id = game.nextHandId()
         this.dealerSeat = game.dealerSeat
         this.seats = [...game.seats]
-        this.publicSeed = game.seed
-        this.privateSeed = shortid.generate()
+        this.lastPot = game.lastPot
         players.forEach(p => this.playersMap.set(p.id, p))
     } 
 
@@ -202,9 +200,12 @@ export class GameHand {
         if (this.status !== GameHandStatus.READY) throw new Error(`Cannot deal, invalid status`)
         // check the players is not dealt
         
-        this.deck.shuffle(this.game.seed, this.privateSeed)
+        this.deck.shuffle(this.game.seed, this.id.toString(), this.lastPot.toString())
         this.players.forEach(p => {
-            this.playerCards[p.id] = [this.deck.deal(), this.deck.deal()]
+            this.playerCards[p.id] = [this.deck.deal()]
+        })
+        this.players.forEach(p => {
+            this.playerCards[p.id].push(this.deck.deal())
         })
 
         this.markDirty()
@@ -591,8 +592,7 @@ export class GameHand {
             id: this.id,
             dealerSeat: this.dealerSeat,
             seats: this.seats,
-            publicSeed: this.publicSeed,
-            privateSeed: this.privateSeed,
+            lastPot: this.lastPot,
             playerNames: _.fromPairs(this.players.map(p => [p.id, this.game.players.get(p.id).name])),
             yourCards: _.fromPairs(this.players.map(p => [p.id, this.playerCards[p.id]])),
             playerCards: this.players.filter(p => p.showCard).map(p => ({id: p.id, cards: this.playerCards[p.id]})),
