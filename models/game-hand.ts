@@ -574,7 +574,7 @@ export class GameHand {
             status: this.status,
             round: this.round,
             communityCards: this.communityCards,
-            currentPlayer: this.roundPlayers.length > 0 ? this.players[this.roundPlayers[0]].id : null,
+            currentPlayer: this.roundPlayers.length > 0 ? this.players[this.roundPlayers[0]]?.id : null,
             committedPot: this.committedPot,
             fullPot: this.fullPot,
             betting: this.betting,
