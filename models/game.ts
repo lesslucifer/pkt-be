@@ -308,9 +308,8 @@ export class Game {
 
         const handPlayers = _.range(this.seats.length)
             .map(i => (i + this.dealerSeat + 1) % this.seats.length)
-            .filter(i => this.seats[i])
-            .map(i => new HandPlayer(this.players.get(this.seats[i]), i)
-        )
+            .filter(i => this.seats[i] && onlinePlayers.includes(this.seats[i]))
+            .map(i => new HandPlayer(this.players.get(this.seats[i]), i))
         const hand = new GameHand(this, handPlayers)
         this.hand = hand
 
