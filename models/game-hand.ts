@@ -214,7 +214,7 @@ export class GameHand {
     bet(player: HandPlayer, amount: number) {
         if (this.status !== GameHandStatus.PLAYING) throw new Error(`The hand is not playing`)
         if (this.round === HandRound.DONE) throw new Error(`The hand is over`)
-        if (player.status !== HandPlayerStatus.PLAYING) throw new Error(`The player is not playing`)
+        if (player?.status !== HandPlayerStatus.PLAYING) throw new Error(`The player is not playing`)
         
         const index = this.roundPlayers[0]
         if (!this.roundPlayers.length || this.players[index] !== player) throw new Error(`Invalid betting player`)
