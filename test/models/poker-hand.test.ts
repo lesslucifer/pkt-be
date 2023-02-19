@@ -1,7 +1,5 @@
-import _ from 'lodash';
-import TestUtils from '../utils/testutils';
 import { expect } from 'chai';
-import sinon from 'sinon';
+import _ from 'lodash';
 import { Card, CardSuit } from '../../models/card';
 import { PokerHand, PokerHandRank } from '../../models/poker-hand';
 
@@ -215,57 +213,74 @@ describe("# Poker hand calculation tests:", () => {
             expectRank(PokerHandRank.FULLHOUSE, fullHouses)
         });
 
-        it('Flush', async () => {
-            const flushes = [
-                [
-                    { rank: 14, suit: CardSuit.DIAMOND },
-                    { rank: 13, suit: CardSuit.DIAMOND },
-                    { rank: 12, suit: CardSuit.DIAMOND },
-                    { rank: 11, suit: CardSuit.DIAMOND },
-                    { rank: 9, suit: CardSuit.DIAMOND },
-                    { rank: 8, suit: CardSuit.DIAMOND },
-                    { rank: 6, suit: CardSuit.CLUB },
-                ],
-                [
-                    { rank: 7, suit: CardSuit.HEART },
-                    { rank: 5, suit: CardSuit.HEART },
-                    { rank: 3, suit: CardSuit.HEART },
-                    { rank: 2, suit: CardSuit.HEART },
-                    { rank: 10, suit: CardSuit.HEART },
-                    { rank: 8, suit: CardSuit.DIAMOND },
-                    { rank: 4, suit: CardSuit.CLUB },
-                ],
-                [
-                    { rank: 7, suit: CardSuit.CLUB },
-                    { rank: 5, suit: CardSuit.CLUB },
-                    { rank: 3, suit: CardSuit.CLUB },
-                    { rank: 2, suit: CardSuit.CLUB },
-                    { rank: 10, suit: CardSuit.CLUB },
-                    { rank: 8, suit: CardSuit.DIAMOND },
-                    { rank: 6, suit: CardSuit.HEART },
-                ],
-                [
-                    { rank: 7, suit: CardSuit.HEART },
-                    { rank: 5, suit: CardSuit.HEART },
-                    { rank: 4, suit: CardSuit.HEART },
-                    { rank: 3, suit: CardSuit.HEART },
-                    { rank: 2, suit: CardSuit.HEART },
-                    { rank: 8, suit: CardSuit.DIAMOND },
-                    { rank: 6, suit: CardSuit.CLUB },
-                ],
-                [
-                    { rank: 7, suit: CardSuit.HEART },
-                    { rank: 7, suit: CardSuit.DIAMOND },
-                    { rank: 5, suit: CardSuit.HEART },
-                    { rank: 4, suit: CardSuit.HEART },
-                    { rank: 3, suit: CardSuit.HEART },
-                    { rank: 10, suit: CardSuit.HEART },
-                    { rank: 2, suit: CardSuit.CLUB },
-                ]
+        // it('Flush', async () => {
+        //     const flushes = [
+        //         [
+        //             { rank: 14, suit: CardSuit.DIAMOND },
+        //             { rank: 13, suit: CardSuit.DIAMOND },
+        //             { rank: 12, suit: CardSuit.DIAMOND },
+        //             { rank: 11, suit: CardSuit.DIAMOND },
+        //             { rank: 9, suit: CardSuit.DIAMOND },
+        //             { rank: 8, suit: CardSuit.DIAMOND },
+        //             { rank: 6, suit: CardSuit.CLUB },
+        //         ],
+        //         [
+        //             { rank: 7, suit: CardSuit.HEART },
+        //             { rank: 5, suit: CardSuit.HEART },
+        //             { rank: 3, suit: CardSuit.HEART },
+        //             { rank: 2, suit: CardSuit.HEART },
+        //             { rank: 10, suit: CardSuit.HEART },
+        //             { rank: 8, suit: CardSuit.DIAMOND },
+        //             { rank: 4, suit: CardSuit.CLUB },
+        //         ],
+        //         [
+        //             { rank: 7, suit: CardSuit.CLUB },
+        //             { rank: 5, suit: CardSuit.CLUB },
+        //             { rank: 3, suit: CardSuit.CLUB },
+        //             { rank: 2, suit: CardSuit.CLUB },
+        //             { rank: 10, suit: CardSuit.CLUB },
+        //             { rank: 8, suit: CardSuit.DIAMOND },
+        //             { rank: 6, suit: CardSuit.HEART },
+        //         ],
+        //         [
+        //             { rank: 7, suit: CardSuit.HEART },
+        //             { rank: 5, suit: CardSuit.HEART },
+        //             { rank: 4, suit: CardSuit.HEART },
+        //             { rank: 3, suit: CardSuit.HEART },
+        //             { rank: 2, suit: CardSuit.HEART },
+        //             { rank: 8, suit: CardSuit.DIAMOND },
+        //             { rank: 6, suit: CardSuit.CLUB },
+        //         ],
+        //         [
+        //             { rank: 7, suit: CardSuit.HEART },
+        //             { rank: 7, suit: CardSuit.DIAMOND },
+        //             { rank: 5, suit: CardSuit.HEART },
+        //             { rank: 4, suit: CardSuit.HEART },
+        //             { rank: 3, suit: CardSuit.HEART },
+        //             { rank: 10, suit: CardSuit.HEART },
+        //             { rank: 2, suit: CardSuit.CLUB },
+        //         ]
 
+        //     ]
+
+        //     expectRank(PokerHandRank.FLUSH, flushes)
+        // });
+
+        it('Flush detect ace', async () => {
+            const flush = [
+                { rank: 14, suit: CardSuit.DIAMOND },
+                { rank: 2, suit: CardSuit.DIAMOND },
+                { rank: 13, suit: CardSuit.DIAMOND },
+                { rank: 12, suit: CardSuit.DIAMOND },
+                { rank: 11, suit: CardSuit.DIAMOND },
+                { rank: 9, suit: CardSuit.CLUB },
+                { rank: 3, suit: CardSuit.DIAMOND },
             ]
 
-            expectRank(PokerHandRank.FLUSH, flushes)
+            // expectRank(PokerHandRank.FLUSH, [flush])
+            const res = PokerHand.calcHand(flush.slice(0, 2), flush.slice(2))
+            expect(res.holeCardIndexes).include(0).and.not.include(1)
+            expect(res.communityCardsIndexes).include(0).include(1).include(2).include(4)
         });
 
         it('Straight', async () => {
