@@ -302,9 +302,17 @@ export class Game {
             return
         }
 
+        let dealerFindCount = 0
         do {
             this.dealerSeat = (this.dealerSeat + 1) % this.seats.length
-        } while (!this.seats[this.dealerSeat])
+            if (dealerFindCount > 20) {
+                this.status = GameStatus.STOPPED
+                this.hand = null
+                this.addLogs([{action: GameLogAction.GAME_STOP}])
+                return
+            }
+            dealerFindCount += 1
+        } while (this.players.get(this.seats[this.dealerSeat])?.status !== GamePlayerStatus.ACTIVE)
 
         const handPlayers = _.range(this.seats.length)
             .map(i => (i + this.dealerSeat + 1) % this.seats.length)

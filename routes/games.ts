@@ -1,4 +1,5 @@
 import { ExpressRouter, GET, POST } from "express-router-ts";
+import _ from "lodash";
 import AuthServ from "../serv/auth.serv";
 import { PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
@@ -15,7 +16,7 @@ class GamesRouter extends ExpressRouter {
     @GET({path: "/cached"})
     @AuthServ.authPlayer()
     async getCachedGames(@PlayerId() playerId: string) {
-        return [...GameServ.Cache.values()].map(g => g.id)
+        return _.fromPairs([...GameServ.Cache.entries()].map(([gid, g]) => [gid, g?.id]))
     }
 }
 
