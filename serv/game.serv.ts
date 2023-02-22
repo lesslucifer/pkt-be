@@ -40,6 +40,10 @@ export class GameService {
         return CONN.MONGO.collection('game_logs')
     }
 
+    get Cache() {
+        return this.games
+    }
+
     private games = new Map<string, Game>()
     private handlers: _.Dictionary<IGameRequestHandler> = _.fromPairs([
         new KickPlayerGameRequestHandler(),
