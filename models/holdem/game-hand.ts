@@ -1,10 +1,10 @@
 import _ from "lodash";
-import shortid from "shortid";
-import hera, { AppLogicError } from "../utils/hera";
-import { Card, Deck } from "./card";
-import { Game, GamePlayer, GameStatus } from "./game";
+import hera, { AppLogicError } from "../../utils/hera";
+import { HoldemPokerGame, GamePlayer, GameStatus } from "./game";
 import { GameLogAction } from "./game-log";
 import { PokerHand, PokerHandResult } from "./poker-hand";
+import { Deck } from "../deck";
+import { Card52 } from "../card/card52";
 
 export enum HandStepType {
     NEW_GAME = 0,
@@ -28,7 +28,7 @@ export interface IHandStep {
     player?: string
     amount?: number
     round?: HandRound
-    cards?: Card[]
+    cards?: Card52[]
 }
 
 export enum HandPlayerStatus {
@@ -104,16 +104,16 @@ export class GameHand {
     seats: string[]
 
     lastPot: number
-    deck: Deck = new Deck()
+    deck: Deck<Card52> = new Deck(Card52.BASE_CARDS)
 
     playersMap: Map<string, HandPlayer> = new Map()
-    playerCards: _.Dictionary<Card[]> = {}
+    playerCards: _.Dictionary<Card52[]> = {}
     sentCards = false
 
     roundPlayers: number[] = []
     status: GameHandStatus = GameHandStatus.READY
     round: HandRound = HandRound.PRE_FLOP
-    communityCards: Card[] = []
+    communityCards: Card52[] = []
     winners: _.Dictionary<number> = {}
     beginActionTime: number = null
     timeOutAt: number = null
@@ -133,7 +133,7 @@ export class GameHand {
         return this.dirty
     }
 
-    constructor(private game: Game, private players: HandPlayer[]) {
+    constructor(private game: HoldemPokerGame, private players: HandPlayer[]) {
         this.id = game.nextHandId()
         this.dealerSeat = game.dealerSeat
         this.seats = [...game.seats]

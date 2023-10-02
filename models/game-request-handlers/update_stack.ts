@@ -1,5 +1,5 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game, IStackRequest } from "../game";
+import { HoldemPokerGame, IStackRequest } from "../holdem/game";
 import { BaseGameRequestHandler } from "./base";
 
 interface UpdateStackGameRequest extends IStackRequest {
@@ -15,7 +15,7 @@ export class UpdateStackGameRequestHandler extends BaseGameRequestHandler<Update
         '++': false
     }
 
-    async process(game: Game, playerId: string, req: UpdateStackGameRequest) {
+    async process(game: HoldemPokerGame, playerId: string, req: UpdateStackGameRequest) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
         game.requestStackUpdate(req.player, {
             mode: req.mode,

@@ -2,23 +2,23 @@ import { ExpressRouter, GET, Params, POST, Query } from "express-router-ts";
 import _ from "lodash";
 import { ObjectId } from "mongodb";
 import HC from "../glob/hc";
-import { Game } from "../models/game";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
+import { HoldemPokerGame } from "../models/holdem/game";
 
 class GamesRouter extends ExpressRouter {
     @GET({ path: "/" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async getCurrentGame(@CurrentGame() game: Game) {
+    async getCurrentGame(@CurrentGame() game: HoldemPokerGame) {
         return game.toJSON()
     }
 
     @GET({ path: "/logs" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async getGameLogs(@CurrentGame() game: Game, @Query() query: any) {
+    async getGameLogs(@CurrentGame() game: HoldemPokerGame, @Query() query: any) {
         const q = {
             id: game.id
         }
@@ -39,7 +39,7 @@ class GamesRouter extends ExpressRouter {
     @GET({ path: "/hands" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async getHands(@PlayerId() playerId: string, @CurrentGame() game: Game, @Query() query: any) {
+    async getHands(@PlayerId() playerId: string, @CurrentGame() game: HoldemPokerGame, @Query() query: any) {
         const pageSize = isNaN(query.pageSize) ? 10 : parseInt(query.pageSize)
         const page = query.page ?? 0
         const offset = page * pageSize
@@ -60,7 +60,7 @@ class GamesRouter extends ExpressRouter {
     @GET({ path: "/hands/:handId" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async getHand(@PlayerId() playerId: string, @CurrentGame() game: Game, @IntParams('handId') handId: number) {
+    async getHand(@PlayerId() playerId: string, @CurrentGame() game: HoldemPokerGame, @IntParams('handId') handId: number) {
         const hand = await GameServ.HandModel.findOne({
             id: handId,
             gameId: game.id,
@@ -74,7 +74,7 @@ class GamesRouter extends ExpressRouter {
     @POST({ path: "/sockets/:socketId" })
     @AuthServ.authPlayer()
     @AuthServ.authGame()
-    async bindSocket(@PlayerId() playerId: string, @CurrentGame() game: Game, @Params('socketId') socketId: string) {
+    async bindSocket(@PlayerId() playerId: string, @CurrentGame() game: HoldemPokerGame, @Params('socketId') socketId: string) {
         GameServ.playerConnect(game, playerId, socketId)
         return HC.SUCCESS
     }

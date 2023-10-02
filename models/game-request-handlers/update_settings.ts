@@ -1,6 +1,6 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game, GameSettings } from "../game";
-import { GameLogAction } from "../game-log";
+import { HoldemPokerGame, GameSettings } from "../holdem/game";
+import { GameLogAction } from "../holdem/game-log";
 import { BaseGameRequestHandler } from "./base";
 
 export class UpdateSettingsGameRequestHandler extends BaseGameRequestHandler<GameSettings> {
@@ -14,7 +14,7 @@ export class UpdateSettingsGameRequestHandler extends BaseGameRequestHandler<Gam
         '++': false
     }
 
-    async process(game: Game, playerId: string, req: GameSettings) {
+    async process(game: HoldemPokerGame, playerId: string, req: GameSettings) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
         if (req.bigBlind < req.smallBlind) throw new AppLogicError(`Big blind must not be less than small blind`, 400)
 

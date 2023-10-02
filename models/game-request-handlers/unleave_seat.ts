@@ -1,13 +1,13 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game } from "../game";
-import { GameLogAction } from "../game-log";
+import { HoldemPokerGame } from "../holdem/game";
+import { GameLogAction } from "../holdem/game-log";
 import { BaseGameRequestHandler } from "./base";
 
 export class UnleaveSeatGameRequestHandler extends BaseGameRequestHandler {
     type = 'UNLEAVE_SEAT'
     schema = {}
 
-    async process(game: Game, playerId: string) {
+    async process(game: HoldemPokerGame, playerId: string) {
         const mySeat = game.seats.indexOf(playerId)
         if (mySeat < 0) throw new AppLogicError(`Cannot unleave seat. You are not having a seat`)
 

@@ -1,6 +1,6 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game } from "../game";
-import { ActionType, IPlayerAction } from "../game-hand";
+import { HoldemPokerGame } from "../holdem/game";
+import { ActionType, IPlayerAction } from "../holdem/game-hand";
 import { BaseGameRequestHandler } from "./base";
 
 
@@ -11,7 +11,7 @@ export class TakeActionGameRequestHandler extends BaseGameRequestHandler<IPlayer
         '@amount': 'integer'
     }
 
-    async process(game: Game, playerId: string, req: IPlayerAction) {
+    async process(game: HoldemPokerGame, playerId: string, req: IPlayerAction) {
         if (!game.hand) throw new AppLogicError(`Cannot take action, no current hand`)
         game.hand.takeAction(playerId, req)
     }

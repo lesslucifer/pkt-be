@@ -1,7 +1,7 @@
 import shortid from "shortid";
 import { AppLogicError } from "../../utils/hera";
-import { Game } from "../game";
-import { GameLogAction } from "../game-log";
+import { HoldemPokerGame } from "../holdem/game";
+import { GameLogAction } from "../holdem/game-log";
 import { BaseGameRequestHandler } from "./base";
 
 interface ITransferOwnershipRequest {
@@ -14,7 +14,7 @@ export class TransferOwnershipGameRequestHandler extends BaseGameRequestHandler<
         '+@newOwner': 'string'
     }
 
-    async process(game: Game, playerId: string, req: ITransferOwnershipRequest) {
+    async process(game: HoldemPokerGame, playerId: string, req: ITransferOwnershipRequest) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot transfer ownership. Owner action`, 403)
         if (!game.players.get(req.newOwner)) throw new AppLogicError(`Cannot transfer ownership. Player not found`, 403)
 

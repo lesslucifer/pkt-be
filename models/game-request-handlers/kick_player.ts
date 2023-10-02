@@ -1,5 +1,5 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game } from "../game";
+import { HoldemPokerGame } from "../holdem/game";
 import { BaseGameRequestHandler } from "./base";
 
 interface IKickPlayerRequest {
@@ -12,7 +12,7 @@ export class KickPlayerGameRequestHandler extends BaseGameRequestHandler<IKickPl
         '+@player': 'string'
     }
 
-    async process(game: Game, playerId: string, req: IKickPlayerRequest) {
+    async process(game: HoldemPokerGame, playerId: string, req: IKickPlayerRequest) {
         if (playerId !== game.ownerId) throw new AppLogicError(`Cannot kick player. Owner action`, 403)
 
         const seat = game.seats.indexOf(req.player)

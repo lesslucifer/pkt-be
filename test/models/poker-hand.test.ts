@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import _ from 'lodash';
-import { Card, CardSuit } from '../../models/card';
-import { PokerHand, PokerHandRank } from '../../models/poker-hand';
+import { Card52, CardSuit, ICard52 } from '../../models/card/card52';
+import { PokerHand, PokerHandRank } from '../../models/holdem/poker-hand';
 
 describe("# Poker hand calculation tests:", () => {
-    const expectRank = (rank: PokerHandRank, examples: Card[][]) => {
+    const expectRank = (rank: PokerHandRank, examples: ICard52[][]) => {
         examples.forEach(cards => {
             for (let i = 0; i < 20; ++i) {
                 const shuffled = _.shuffle(cards)
-                expect(PokerHand.calcHand(shuffled.slice(0, 2), shuffled.slice(2)).rank).eq(rank)
+                expect(PokerHand.calcHand(shuffled.slice(0, 2).map(c => Card52.mk(c)), shuffled.slice(2).map(c => Card52.mk(c))).rank).eq(rank)
             }
         })
     }
@@ -139,7 +139,7 @@ describe("# Poker hand calculation tests:", () => {
             ]
 
             expectRank(PokerHandRank.STRAIGHT_FLUSH, straightFlushses)
-            const res = PokerHand.calcHand(straightFlushses[0].slice(0, 2), straightFlushses[0].slice(2))
+            const res = PokerHand.calcHand(straightFlushses[0].slice(0, 2).map(c => Card52.mk(c)), straightFlushses[0].slice(2).map(c => Card52.mk(c)))
             expect(res.rank).eq(PokerHandRank.STRAIGHT_FLUSH)
             expect(res.holeCardIndexes).is.empty
             expect(res.communityCardsIndexes).include(0).include(1).include(2).include(3).include(4)
@@ -278,7 +278,7 @@ describe("# Poker hand calculation tests:", () => {
             ]
 
             // expectRank(PokerHandRank.FLUSH, [flush])
-            const res = PokerHand.calcHand(flush.slice(0, 2), flush.slice(2))
+            const res = PokerHand.calcHand(flush.slice(0, 2).map(c => Card52.mk(c)), flush.slice(2).map(c => Card52.mk(c)))
             expect(res.holeCardIndexes).include(0).and.not.include(1)
             expect(res.communityCardsIndexes).include(0).include(1).include(2).include(4)
         });
@@ -347,7 +347,7 @@ describe("# Poker hand calculation tests:", () => {
             ]
 
             expectRank(PokerHandRank.STRAIGHT, [straight])
-            const res = PokerHand.calcHand(straight.slice(0, 2), straight.slice(2))
+            const res = PokerHand.calcHand(straight.slice(0, 2).map(c => Card52.mk(c)), straight.slice(2).map(c => Card52.mk(c)))
             expect(res.holeCardIndexes).is.empty
             expect(res.communityCardsIndexes).include(0).include(1).include(2).include(3).include(4)
         });

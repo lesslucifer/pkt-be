@@ -1,11 +1,9 @@
 import _ from "lodash";
 import moment from "moment";
-import shortid from "shortid";
-import RealtimeServ from "../serv/realtime.serv";
-import { AppLogicError } from "../utils/hera";
 import { GameHand, GameHandStatus, HandPlayer } from "./game-hand";
-import { GameLogAction, gameLogUpdateFields, IGameLog, PersistedLogActions } from "./game-log";
-import sha256 from 'crypto-js/sha256'
+import { GameLogAction, IGameLog, PersistedLogActions, gameLogUpdateFields } from "./game-log";
+import { AppLogicError } from "../../utils/hera";
+import RealtimeServ from "../../serv/realtime.serv";
 
 export enum GameStatus {
     STOPPED = 'STOPPED',
@@ -41,7 +39,7 @@ export interface GameRequests {
     stack: _.Dictionary<IStackRequest>
 }
 
-export class Game {
+export class HoldemPokerGame {
     constructor(id: string, seed: string, ownerId: string) {
         this.id = id
         this.seed = seed
@@ -438,7 +436,7 @@ export class GamePlayer {
     buyIn: number = 0
     buyOut: number = 0
 
-    constructor(public id: string, public game: Game) {
+    constructor(public id: string, public game: HoldemPokerGame) {
         this.name = id
     }
 

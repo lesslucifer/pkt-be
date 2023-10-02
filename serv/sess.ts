@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as uuid from 'uuid';
-import { Game, GamePlayer } from '../models/game';
+import { GamePlayer, HoldemPokerGame } from '../models/holdem/game';
 
 export class AuthUserSession {
     constructor(public id: string, public roles: string[]) {}
@@ -9,7 +9,7 @@ export class AuthUserSession {
 interface IReqSession {
     playerId?: string;
     gamePlayer?: GamePlayer;
-    game?: Game;
+    game?: HoldemPokerGame;
     user?: AuthUserSession;
     system?: string;
 }

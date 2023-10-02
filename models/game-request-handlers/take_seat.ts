@@ -1,5 +1,5 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game } from "../game";
+import { HoldemPokerGame } from "../holdem/game";
 import { BaseGameRequestHandler } from "./base";
 
 interface ITakeSeatRequest {
@@ -16,7 +16,7 @@ export class TakeSeatGameRequestHandler extends BaseGameRequestHandler<ITakeSeat
         '+@name': 'string|len>=2|len<=25'
     }
 
-    async process(game: Game, playerId: string, req: ITakeSeatRequest) {
+    async process(game: HoldemPokerGame, playerId: string, req: ITakeSeatRequest) {
         game.requestSeat(playerId, req.seat, req.buyIn, req.name)
     }
 }

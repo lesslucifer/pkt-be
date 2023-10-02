@@ -1,5 +1,5 @@
 import { AppLogicError } from "../../utils/hera";
-import { Game, GamePlayerStatus } from "../game";
+import { HoldemPokerGame, GamePlayerStatus } from "../holdem/game";
 import { BaseGameRequestHandler } from "./base";
 
 interface SetPlayerStatusGameRequest {
@@ -14,7 +14,7 @@ export class SetPlayerStatusGameRequestHandler extends BaseGameRequestHandler<Se
         '+status': { enum: Object.values(GamePlayerStatus) }
     }
 
-    async process(game: Game, playerId: string, req: SetPlayerStatusGameRequest) {
+    async process(game: HoldemPokerGame, playerId: string, req: SetPlayerStatusGameRequest) {
         if (playerId !== game.ownerId && playerId !== req.player) throw new AppLogicError(`Cannot set player status. Owner or self action`, 403)
         const player = game.players.get(req.player)
         if (!player) throw new AppLogicError(`Cannot set player status. Player not found`, 403)

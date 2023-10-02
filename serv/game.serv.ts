@@ -2,8 +2,6 @@ import _ from "lodash";
 import moment from "moment";
 import shortid from 'shortid';
 import CONN from "../glob/conn";
-import { Game, GamePlayer, GameStatus, IGameMessage } from "../models/game";
-import { GameLogAction } from "../models/game-log";
 import { IGameRequestHandler } from "../models/game-request-handlers/base";
 import { KickPlayerGameRequestHandler } from "../models/game-request-handlers/kick_player";
 import { LeaveSeatGameRequestHandler } from "../models/game-request-handlers/leave_seat";
@@ -26,6 +24,8 @@ import { UpdateSettingsGameRequestHandler } from "../models/game-request-handler
 import { UpdateStackGameRequestHandler } from "../models/game-request-handlers/update_stack";
 import proto from '../proto/game.proto.js';
 import RealtimeServ from "./realtime.serv";
+import { GamePlayer, GameStatus, HoldemPokerGame, IGameMessage } from "../models/holdem/game";
+import { GameLogAction } from "../models/holdem/game-log";
 
 export class GameService {
     get GameModel() {
@@ -44,7 +44,7 @@ export class GameService {
         return this.games
     }
 
-    private games = new Map<string, Game>()
+    private games = new Map<string, HoldemPokerGame>()
     private handlers: _.Dictionary<IGameRequestHandler> = _.fromPairs([
         new KickPlayerGameRequestHandler(),
         new LeaveSeatGameRequestHandler(),
@@ -69,7 +69,7 @@ export class GameService {
     ].map(handler => [handler.type, handler]))
 
     newGame(playerId: string) {
-        const game = new Game(shortid.generate(), shortid.generate(), playerId)
+        const game = new HoldemPokerGame(shortid.generate(), shortid.generate(), playerId)
         game.lastSave = game.lastActive
         this.games.set(game.id, game)
         this.GameModel.insertOne(game.dataJSON())
@@ -88,7 +88,7 @@ export class GameService {
 
     private gameFromJSON(js: any) {
         if (_.isEmpty(js)) return null
-        const game = new Game(js.id, js.seed, js.ownerId)
+        const game = new HoldemPokerGame(js.id, js.seed, js.ownerId)
         Object.assign(game, js)
         game.seats = game.seats.map(s => _.isNil(s) ? '' : s)
         game.lastActive = moment(js.lastActive)
@@ -100,7 +100,7 @@ export class GameService {
         return game
     }
 
-    async saveGamesIfNeeded(games: Game[]) {
+    async saveGamesIfNeeded(games: HoldemPokerGame[]) {
         await this.saveGames(games.filter(g => g && g.lastSave.isBefore(g.lastActive)))
     }
 
@@ -108,7 +108,7 @@ export class GameService {
         this.saveGamesIfNeeded(Array.from(this.games.values()))
     }
 
-    private async saveGames(games: Game[]) {
+    private async saveGames(games: HoldemPokerGame[]) {
         if (games.length <= 0) return
         console.log(`Save ${games.length} games`)
 
@@ -130,7 +130,6 @@ export class GameService {
             }
         })
         if (gameLogs.length > 0) {
-            console.log(`Save ${gameLogs.length} game logs`)
             await this.GameLogsModel.insertMany(gameLogs)
             
             // Send error log on-save, no better place
@@ -155,7 +154,7 @@ export class GameService {
         this.games.clear()
         try {
             const playingGames = await this.GameModel.find({ status: 'PLAYING' }).toArray()
-            const games: Game[] = playingGames.map(js => this.gameFromJSON(js))
+            const games: HoldemPokerGame[] = playingGames.map(js => this.gameFromJSON(js))
     
             games.forEach(g => {
                 g.status = GameStatus.STOPPED
@@ -167,7 +166,7 @@ export class GameService {
         }
     }
 
-    sendUpdateToClients(game: Game) {
+    sendUpdateToClients(game: HoldemPokerGame) {
         if (game.hand?.sentCards === false) {
             for (const pid of game.hand.playersMap.keys()) {
                 this.sendPlayerCards(game, pid)
@@ -217,14 +216,14 @@ export class GameService {
         RealtimeServ.roomBroadcast(gameId, 'message', msg)
     }
 
-    playerConnect(game: Game, playerId: string, socketId: string) {
+    playerConnect(game: HoldemPokerGame, playerId: string, socketId: string) {
         RealtimeServ.joinRoom(game.id, socketId)
         RealtimeServ.bind(`${game.id}:${playerId}`, socketId)
         RealtimeServ.bind(game.id, socketId)
         game.addLogs([{action: GameLogAction.SOCKET_IN, player: playerId}])
     }
 
-    sendPlayerCards(game: Game, playerId: string) {
+    sendPlayerCards(game: HoldemPokerGame, playerId: string) {
         const cards = game.hand?.playerCards?.[playerId]
         if (!cards?.length) return
 
@@ -236,7 +235,7 @@ export class GameService {
         sockets?.forEach(s => s.emit('cards', data))
     }
 
-    async processGameRequest(game: Game, playerId: string, data: any) {
+    async processGameRequest(game: HoldemPokerGame, playerId: string, data: any) {
         try {
             const handler = this.handlers[data?.type]
             if (!handler) return
@@ -295,7 +294,6 @@ export class GameService {
         }, 1800 * 1000) // clear cache - run every 30 minutes
 
         setInterval(() => {
-            const start = moment()
             this.games.forEach(g => {
                 if (!g) return
                 try {
@@ -306,13 +304,6 @@ export class GameService {
                     console.log(err)
                 }
             })
-            const end = moment()
-            const dur = end.valueOf() - start.valueOf()
-            if (dur > 60) {
-                console.log('[WARNING] Long sending update detected')
-                console.log(start.format('HH:mm:ss.SSS'), 'Start sending updates...')
-                console.log(end.format('HH:mm:ss.SSS'), 'End sending updates; Duration: ', dur)
-            }
         }, 100)
 
         setInterval(() => {
@@ -338,7 +329,6 @@ export class GameService {
         }
 
         RealtimeServ.onClientRequest = async (socketId, data) => {
-            console.log(moment().format('HH:mm:ss.SSS'), 'Recevied client request socket', socketId)
             const bindings = [...(RealtimeServ.revBinding.get(socketId) ?? [])]
             const games = bindings.map(bd => this.games.get(bd)).filter(g => !!g)
             await Promise.all(games.map(async g => {
@@ -357,7 +347,6 @@ export class GameService {
                     }
                 }
             }))
-            console.log(moment().format('HH:mm:ss.SSS'), 'End processing client request from', socketId)
         }
     }
 }
