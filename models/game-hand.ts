@@ -1,5 +1,4 @@
 import _ from "lodash";
-import shortid from "shortid";
 import hera, { AppLogicError } from "../utils/hera";
 import { Card, Deck } from "./card";
 import { Game, GamePlayer, GameStatus } from "./game";

@@ -6,6 +6,7 @@ import { Game } from "../models/game";
 import AuthServ from "../serv/auth.serv";
 import { CurrentGame, IntParams, PlayerId } from "../serv/decors";
 import GameServ from "../serv/game.serv";
+import hera from "../utils/hera";
 
 class GamesRouter extends ExpressRouter {
     @GET({ path: "/" })
@@ -41,11 +42,15 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authGame()
     async getHands(@PlayerId() playerId: string, @CurrentGame() game: Game, @Query() query: any) {
         const pageSize = isNaN(query.pageSize) ? 10 : parseInt(query.pageSize)
-        const page = query.page ?? 0
+        const page = hera.parseInt(query.page, 10, 0)
         const offset = page * pageSize
         const data = await GameServ.HandModel.find({
             gameId: game.id
         }).limit(pageSize).project({logs: 0}).sort({ id: 'desc' }).skip(offset).toArray()
+        if (page === 0 && game.hand && _.first(data)?.id !== game.hand?.id) {
+            data.unshift(game.hand.persistJSON())
+        }
+
         data.forEach(h => {
             h.yourCards = h.yourCards?.[playerId]
         })
@@ -61,7 +66,7 @@ class GamesRouter extends ExpressRouter {
     @AuthServ.authPlayer()
     @AuthServ.authGame()
     async getHand(@PlayerId() playerId: string, @CurrentGame() game: Game, @IntParams('handId') handId: number) {
-        const hand = await GameServ.HandModel.findOne({
+        const hand = handId === game.hand?.id ? game.hand?.persistJSON() : await GameServ.HandModel.findOne({
             id: handId,
             gameId: game.id,
         })

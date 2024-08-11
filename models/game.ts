@@ -381,7 +381,7 @@ export class Game {
             players: _.fromPairs([...this.players.entries()].map(([pid, p]) => [pid, p.toJSON()])),
             dealerSeat: this.dealerSeat,
             handCount: this.handCount,
-            lastPOt: this.lastPot,
+            lastPot: this.lastPot,
             settings: this.settings,
             lastActive: this.lastActive.valueOf(),
             lastSave: this.lastSave.valueOf()
